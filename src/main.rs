@@ -13,13 +13,9 @@ struct State {
 
 impl State {
     fn new(geng: &Rc<Geng>) -> Self {
-        let config: Config = serde_json::from_reader(std::io::BufReader::new(
-            std::fs::File::open("config.json").unwrap(),
-        ))
-        .unwrap();
         Self {
             renderer: Renderer::new(geng),
-            model: Model::new(config),
+            model: Model::new(),
         }
     }
 }
