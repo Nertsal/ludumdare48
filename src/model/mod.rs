@@ -36,9 +36,10 @@ impl Model {
         model.set_tile(
             vec2(0, 0),
             Tile::Root(Root {
-                update_timer: model.rules.root_growth_time,
                 parent_root: None,
-                root_type: RootType::Head,
+                root_type: RootType::Head {
+                    update_timer: model.rules.root_growth_time,
+                },
             }),
         );
         model.generate(0, 100);
