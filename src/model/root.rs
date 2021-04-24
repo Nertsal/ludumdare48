@@ -33,19 +33,36 @@ impl Model {
     pub fn update_roots(&mut self) {
         let ids: Vec<Id> = self.tree_roots.roots.keys().copied().collect();
         for id in ids {
-            let mut root = self.tree_roots.roots.get(&id).unwrap().clone();
-            self.update_root(&mut root);
-            *self.tree_roots.roots.get_mut(&id).unwrap() = root;
+            if let Some(root) = self.tree_roots.roots.get(&id) {
+                let mut root = root.clone();
+                self.update_root(&mut root, id);
+                *self.tree_roots.roots.get_mut(&id).unwrap() = root;
+            }
         }
     }
 
-    fn update_root(&mut self, root: &mut Root) {
+    fn update_root(&mut self, root: &mut Root, root_id: Id) {
         if let &mut RootType::Head { direction } = &mut root.root_type {
             if global_rng().gen::<f32>() <= self.rules.split_chance * self.fixed_delta_time {
                 self.split_root(root)
             } else {
                 self.grow_root(root, direction);
             }
+
+            for (&other_id, other) in &self.tree_roots.roots {
+                if other_id != root_id
+                    && Some(other_id) != root.parent_root
+                    && (other.position - root.position).len()
+                        <= self.fixed_delta_time * self.rules.root_growth_speed / 2.0
+                {
+                    root.root_type = RootType::Final;
+                    break;
+                }
+            }
+        }
+
+        if root.position.x.abs() > self.rules.chamber_width as f32 {
+            root.root_type = RootType::Final;
         }
     }
 
