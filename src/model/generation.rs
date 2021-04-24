@@ -12,7 +12,7 @@ impl Model {
         for y in area.y_min..=area.y_max {
             for x in area.x_min..=area.x_max {
                 let position = vec2(x, y);
-                self.set_tile(position, tile);
+                self.set_tile(position, tile.clone());
             }
         }
     }

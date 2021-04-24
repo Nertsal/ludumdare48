@@ -37,7 +37,7 @@ impl Renderer {
             let color = match tile {
                 Tile::Stone => Color::GRAY,
                 Tile::Dirt => Color::rgb(0.5, 0.5, 0.0),
-                Tile::Root => Color::rgb(0.3, 0.3, 0.0),
+                Tile::Root(_) => Color::rgb(0.3, 0.3, 0.0),
             };
             let local_pos =
                 get_local_pos(pos.map(|x| x as f32), offset, self.scale(), screen_center);

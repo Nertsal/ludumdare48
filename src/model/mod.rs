@@ -2,9 +2,11 @@ use super::*;
 
 mod generation;
 mod multi_noise;
+mod root;
 mod rules;
 
 use multi_noise::*;
+use root::*;
 use rules::*;
 
 pub struct Model {
@@ -31,11 +33,20 @@ impl Model {
             ),
         };
         model.fill_area(model.get_area(0, 20), Tile::Dirt);
-        model.set_tile(vec2(0, 0), Tile::Root);
+        model.set_tile(
+            vec2(0, 0),
+            Tile::Root(Root {
+                update_timer: model.rules.root_growth_time,
+                parent_root: None,
+                root_type: RootType::Head,
+            }),
+        );
         model.generate(0, 100);
         model
     }
-    pub fn update(&mut self, delta_time: f32) {}
+    pub fn update(&mut self, delta_time: f32) {
+        self.update_roots(delta_time);
+    }
     pub fn handle_event(&mut self, event: &geng::Event) {}
     fn generate(&mut self, depth_start: i32, depth_end: i32) {
         self.generate_area(self.get_area(depth_start, depth_end));
@@ -45,9 +56,9 @@ impl Model {
 type Position = Vec2<i32>;
 type Area = AABB<i32>;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum Tile {
     Dirt,
     Stone,
-    Root,
+    Root(Root),
 }
