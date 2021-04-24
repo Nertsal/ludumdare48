@@ -17,29 +17,36 @@ pub struct Model {
     delta_time: f32,
     fixed_delta_time: f32,
     rules: Rules,
-    noise: MultiNoise,
+    noises: [MultiNoise; 2],
     id_generator: IdGenerator,
 }
 
 impl Model {
     pub fn new() -> Self {
+        let terrain_noise_properties = MultiNoiseProperties {
+            min_value: 0.0,
+            max_value: 1.0,
+            scale: 20.0,
+            octaves: 1,
+            lacunarity: 1.0,
+            persistance: 1.0,
+        };
         let mut model = Self {
             tiles: HashMap::new(),
             tree_roots: TreeRoots::new(),
             fixed_delta_time: 1.0 / 20.0,
             delta_time: 0.0,
             rules: Rules::default(),
-            noise: MultiNoise::new(
-                global_rng().gen(),
-                &MultiNoiseProperties {
-                    min_value: 0.0,
-                    max_value: 1.0,
-                    scale: 20.0,
-                    octaves: 1,
-                    lacunarity: 1.0,
-                    persistance: 1.0,
-                },
-            ),
+            noises: [
+                MultiNoise::new(global_rng().gen(), &terrain_noise_properties),
+                MultiNoise::new(
+                    global_rng().gen(),
+                    &MultiNoiseProperties {
+                        scale: 5.0,
+                        ..terrain_noise_properties
+                    },
+                ),
+            ],
             id_generator: IdGenerator::new(),
         };
         model.new_root(Root {
@@ -80,4 +87,5 @@ type Area = AABB<i32>;
 pub enum Tile {
     Dirt,
     Stone,
+    Mineral,
 }

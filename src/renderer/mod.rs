@@ -23,7 +23,7 @@ impl Renderer {
             current_depth: 0.0,
             tile_size: 10.0,
             root_width: 5.0,
-            attractor_size: 7.5,
+            attractor_size: 3.0,
         }
     }
     fn scale(&self) -> f32 {
@@ -43,6 +43,7 @@ impl Renderer {
             let color = match tile {
                 Tile::Stone => Color::GRAY,
                 Tile::Dirt => Color::rgb(0.5, 0.5, 0.0),
+                Tile::Mineral => Color::CYAN,
             };
             let local_pos = self.world_to_camera(pos.map(|x| x as f32));
             self.geng.draw_2d().quad(
@@ -93,7 +94,7 @@ impl Renderer {
             .iter()
             .filter(|attractor| self.is_on_screen(attractor.position))
         {
-            let color = Color::CYAN;
+            let color = Color::BLUE;
             let local_pos = self.world_to_camera(attractor.position);
             self.geng
                 .draw_2d()
@@ -122,10 +123,10 @@ impl Renderer {
         let pos = vec2(pos.x, -pos.y);
         pos
     }
-    fn is_on_screen(&self, position: Vec2<f32>) -> bool {
+    fn is_on_screen(&self, pos: Vec2<f32>) -> bool {
         let offset = vec2(0.0, self.current_depth);
         let y_max = offset.y + self.screen_center.y / self.scale();
         let y_min = offset.y - self.screen_center.y / self.scale();
-        position.y >= y_min && position.y <= y_max
+        pos.y >= y_min && pos.y <= y_max
     }
 }

@@ -21,8 +21,9 @@ impl Model {
         for y in area.y_min..=area.y_max {
             for x in area.x_min..=area.x_max {
                 let position = vec2(x, y);
-                let noise_value = self.noise.get(position.map(|x| x as f32));
-                let tile = self.tile_from_noise_value(noise_value);
+                let terrain_noise = self.noises[0].get(position.map(|x| x as f32));
+                let mineral_noise = self.noises[1].get(position.map(|x| x as f32));
+                let tile = self.tile_from_noise_value(mineral_noise, terrain_noise);
                 self.try_set_tile(position, tile);
             }
         }
@@ -36,8 +37,10 @@ impl Model {
         self.tiles.entry(position).or_insert(tile);
     }
 
-    fn tile_from_noise_value(&self, noise_value: f32) -> Tile {
-        if noise_value <= self.rules.stone_frequency {
+    fn tile_from_noise_value(&self, mineral_noise: f32, terrain_noise: f32) -> Tile {
+        if mineral_noise <= self.rules.mineral_frequency {
+            Tile::Mineral
+        } else if terrain_noise <= self.rules.stone_frequency {
             Tile::Stone
         } else {
             Tile::Dirt
