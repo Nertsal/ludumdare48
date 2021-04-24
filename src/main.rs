@@ -35,6 +35,7 @@ impl geng::State for State {
 }
 
 fn main() {
+    geng::setup_panic_handler();
     let geng = Rc::new(Geng::new(default()));
     let state = State::new(&geng);
     geng::run(geng, state);
