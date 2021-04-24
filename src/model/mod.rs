@@ -46,7 +46,7 @@ impl Model {
             position: vec2(0.0, 0.0),
             parent_root: None,
             root_type: RootType::Head {
-                direction: vec2(0.0, 1.0),
+                velocity: vec2(0.0, model.rules.root_growth_speed),
             },
         });
         model.fill_area(model.get_area(0, 20), Tile::Dirt);
@@ -61,6 +61,13 @@ impl Model {
         }
     }
     pub fn handle_event(&mut self, event: &geng::Event) {}
+    pub fn handle_message(&mut self, message: Message) {
+        match message {
+            Message::SpawnAttractor { pos } => {
+                self.spawn_attractor(pos);
+            }
+        }
+    }
     fn generate(&mut self, depth_start: i32, depth_end: i32) {
         self.generate_area(self.get_area(depth_start, depth_end));
     }

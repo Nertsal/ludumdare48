@@ -30,7 +30,9 @@ impl geng::State for State {
     }
     fn handle_event(&mut self, event: geng::Event) {
         self.model.handle_event(&event);
-        self.renderer.handle_event(&event);
+        if let Some(message) = self.renderer.handle_event(&event) {
+            self.model.handle_message(message);
+        }
     }
 }
 

@@ -24,8 +24,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: geng
-          args: build --release --target wasm32-unknown-unknown --index-file play.html
-
+          args: build --release --target wasm32-unknown-unknown
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
         with:

@@ -4,6 +4,7 @@ pub struct Rules {
     pub chamber_width: usize,
     pub stone_frequency: f32,
     pub split_chance: f32,
+    pub root_inertia: f32,
 }
 
 impl Default for Rules {
@@ -13,6 +14,7 @@ impl Default for Rules {
             chamber_width: 20,
             stone_frequency: 0.2,
             split_chance: 0.1,
+            root_inertia: 1.0,
         }
     }
 }
