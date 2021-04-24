@@ -1,25 +1,34 @@
 use super::*;
 
 mod generation;
+mod id;
 mod multi_noise;
 mod root;
 mod rules;
 
+use id::*;
 use multi_noise::*;
 use root::*;
 use rules::*;
 
 pub struct Model {
-    rules: Rules,
     pub tiles: HashMap<Position, Tile>,
+    pub tree_roots: TreeRoots,
+    delta_time: f32,
+    fixed_delta_time: f32,
+    rules: Rules,
     noise: MultiNoise,
+    id_generator: IdGenerator,
 }
 
 impl Model {
     pub fn new() -> Self {
         let mut model = Self {
-            rules: Rules::default(),
             tiles: HashMap::new(),
+            tree_roots: TreeRoots::new(),
+            fixed_delta_time: 1.0 / 20.0,
+            delta_time: 0.0,
+            rules: Rules::default(),
             noise: MultiNoise::new(
                 global_rng().gen(),
                 &MultiNoiseProperties {
@@ -31,22 +40,25 @@ impl Model {
                     persistance: 1.0,
                 },
             ),
+            id_generator: IdGenerator::new(),
         };
+        model.new_root(Root {
+            position: vec2(0.0, 0.0),
+            parent_root: None,
+            root_type: RootType::Head {
+                direction: vec2(0.0, 1.0),
+            },
+        });
         model.fill_area(model.get_area(0, 20), Tile::Dirt);
-        model.set_tile(
-            vec2(0, 0),
-            Tile::Root(Root {
-                parent_root: None,
-                root_type: RootType::Head {
-                    update_timer: model.rules.root_growth_time,
-                },
-            }),
-        );
         model.generate(0, 100);
         model
     }
     pub fn update(&mut self, delta_time: f32) {
-        self.update_roots(delta_time);
+        self.delta_time += delta_time;
+        if self.delta_time >= self.fixed_delta_time {
+            self.delta_time -= self.fixed_delta_time;
+            self.update_roots();
+        }
     }
     pub fn handle_event(&mut self, event: &geng::Event) {}
     fn generate(&mut self, depth_start: i32, depth_end: i32) {
@@ -61,14 +73,4 @@ type Area = AABB<i32>;
 pub enum Tile {
     Dirt,
     Stone,
-    Root(Root),
-}
-
-impl Tile {
-    pub fn new_root_head(parent_root: Option<Position>, update_timer: f32) -> Self {
-        Self::Root(Root {
-            parent_root,
-            root_type: RootType::Head { update_timer },
-        })
-    }
 }
