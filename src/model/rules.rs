@@ -3,6 +3,7 @@ pub struct Rules {
     pub root_growth_time: f32,
     pub chamber_width: usize,
     pub stone_frequency: f32,
+    pub split_chance: f32,
 }
 
 impl Default for Rules {
@@ -11,6 +12,7 @@ impl Default for Rules {
             root_growth_time: 2.0,
             chamber_width: 20,
             stone_frequency: 0.2,
+            split_chance: 0.1,
         }
     }
 }

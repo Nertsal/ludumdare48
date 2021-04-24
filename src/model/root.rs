@@ -42,7 +42,11 @@ impl Model {
         if let RootType::Head { update_timer } = &mut root.root_type {
             *update_timer -= delta_time;
             if *update_timer <= 0.0 {
-                self.grow_root_random(root, root_pos);
+                if global_rng().gen::<f32>() <= self.rules.split_chance {
+                    self.split_root(root, root_pos)
+                } else {
+                    self.grow_root_random(root, root_pos);
+                }
                 None
             } else {
                 Some(root)
@@ -62,12 +66,27 @@ impl Model {
         };
         self.set_tile(
             next_pos,
+            Tile::new_root_head(Some(root_pos), self.rules.root_growth_time),
+        );
+        self.set_tile(
+            root_pos,
             Tile::Root(Root {
-                parent_root: Some(root_pos),
-                root_type: RootType::Head {
-                    update_timer: self.rules.root_growth_time,
-                },
+                parent_root: root.parent_root,
+                root_type: RootType::Node,
             }),
+        );
+    }
+
+    fn split_root(&mut self, root: Root, root_pos: Position) {
+        let left_pos = root_pos + vec2(-1, 1);
+        let right_pos = root_pos + vec2(1, 1);
+        self.set_tile(
+            left_pos,
+            Tile::new_root_head(Some(root_pos), self.rules.root_growth_time),
+        );
+        self.set_tile(
+            right_pos,
+            Tile::new_root_head(Some(root_pos), self.rules.root_growth_time),
         );
         self.set_tile(
             root_pos,

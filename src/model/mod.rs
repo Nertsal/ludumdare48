@@ -63,3 +63,12 @@ pub enum Tile {
     Stone,
     Root(Root),
 }
+
+impl Tile {
+    pub fn new_root_head(parent_root: Option<Position>, update_timer: f32) -> Self {
+        Self::Root(Root {
+            parent_root,
+            root_type: RootType::Head { update_timer },
+        })
+    }
+}
