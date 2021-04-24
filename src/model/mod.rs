@@ -30,16 +30,15 @@ impl Model {
                 },
             ),
         };
-        model.generate(0, -100);
+        model.fill_area(model.get_area(0, 20), Tile::Dirt);
+        model.set_tile(vec2(0, 0), Tile::Root);
+        model.generate(0, 100);
         model
     }
     pub fn update(&mut self, delta_time: f32) {}
     pub fn handle_event(&mut self, event: &geng::Event) {}
     fn generate(&mut self, depth_start: i32, depth_end: i32) {
-        self.generate_area(AABB::from_corners(
-            vec2(-(self.rules.chamber_width as i32), depth_start),
-            vec2(self.rules.chamber_width as i32, depth_end),
-        ))
+        self.generate_area(self.get_area(depth_start, depth_end));
     }
 }
 

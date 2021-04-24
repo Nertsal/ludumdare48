@@ -32,17 +32,15 @@ impl Renderer {
             if (pos.y as f32) < y_min || pos.y as f32 > y_max {
                 continue;
             }
+            let pos = vec2(pos.x, -pos.y);
+
             let color = match tile {
                 Tile::Stone => Color::GRAY,
                 Tile::Dirt => Color::rgb(0.5, 0.5, 0.0),
                 Tile::Root => Color::rgb(0.3, 0.3, 0.0),
             };
-            let local_pos = get_local_pos(
-                pos.map(|x| x as f32),
-                offset,
-                self.scale(),
-                screen_center,
-            );
+            let local_pos =
+                get_local_pos(pos.map(|x| x as f32), offset, self.scale(), screen_center);
             self.geng.draw_2d().quad(
                 framebuffer,
                 AABB::from_corners(
