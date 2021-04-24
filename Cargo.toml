@@ -9,3 +9,4 @@ edition = "2018"
 [dependencies]
 geng = "0.7.0-alpha.0"
 serde = "1.0.116"
+noise = "0.7.0"
