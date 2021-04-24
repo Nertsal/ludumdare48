@@ -44,12 +44,12 @@ impl Model {
             if global_rng().gen::<f32>() <= self.rules.split_chance {
                 self.split_root(root)
             } else {
-                self.grow_root_random(root, direction);
+                self.grow_root(root, direction);
             }
         }
     }
 
-    fn grow_root_random(&mut self, root: &mut Root, direction: Direction) {
+    fn grow_root(&mut self, root: &mut Root, direction: Direction) {
         let next_pos =
             root.position + direction * self.fixed_delta_time * self.rules.root_growth_speed;
         let id = self.new_root(Root {
