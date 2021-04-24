@@ -19,6 +19,7 @@ pub struct Model {
     rules: Rules,
     noises: [MultiNoise; 2],
     id_generator: IdGenerator,
+    pub minerals: usize,
 }
 
 impl Model {
@@ -48,6 +49,7 @@ impl Model {
                 ),
             ],
             id_generator: IdGenerator::new(),
+            minerals: 0,
         };
         model.new_root(Root {
             position: vec2(0.0, 0.0),

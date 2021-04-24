@@ -90,9 +90,17 @@ impl Model {
             return;
         }
 
-        if let Some(Tile::Stone) = self.tiles.get(&get_tile_pos(root.position)) {
-            root.root_type = RootType::Final;
-            return;
+        if let Some(tile) = self.tiles.get(&get_tile_pos(root.position)) {
+            match tile {
+                Tile::Stone => {
+                    root.root_type = RootType::Final;
+                }
+                Tile::Mineral => {
+                    root.root_type = RootType::Final;
+                    self.minerals += 1;
+                }
+                _ => (),
+            }
         }
     }
 
