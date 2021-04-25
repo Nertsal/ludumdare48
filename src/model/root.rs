@@ -47,6 +47,7 @@ impl Model {
                 *self.tree_roots.roots.get_mut(&id).unwrap() = root;
             }
         }
+        self.split_roots = false;
     }
 
     fn update_root(&mut self, root: &mut Root, root_id: Id) {
@@ -68,13 +69,12 @@ impl Model {
                 }
             }
 
-            if global_rng().gen::<f32>() <= self.rules.split_chance * self.fixed_delta_time {
-                self.split_root(root)
+            if self.split_roots {
+                self.split_root(root);
             } else {
-                let velocity = velocity.clone();
+                let velocity = *velocity;
                 self.grow_root(root, velocity);
             }
-
             for (&other_id, other) in &self.tree_roots.roots {
                 if other_id != root_id
                     && Some(other_id) != root.parent_root
@@ -99,7 +99,7 @@ impl Model {
                 }
                 Tile::Mineral => {
                     root.root_type = RootType::Final;
-                    self.minerals += 1;
+                    self.minerals += 1.0;
                 }
                 _ => (),
             }
@@ -146,7 +146,7 @@ impl Model {
         }
     }
 
-    fn split_root(&mut self, root: &mut Root) {
+    pub fn split_root(&mut self, root: &mut Root) {
         let left_dir = get_random_dir(f32::PI * 2.0 / 3.0, f32::PI * 5.0 / 6.0);
         let left_pos = root.position + left_dir * self.fixed_delta_time;
         let right_dir = get_random_dir(f32::PI / 6.0, f32::PI / 3.0);

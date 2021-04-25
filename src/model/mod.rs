@@ -19,7 +19,8 @@ pub struct Model {
     rules: Rules,
     noises: [MultiNoise; 2],
     id_generator: IdGenerator,
-    pub minerals: usize,
+    pub minerals: f32,
+    split_roots: bool,
 }
 
 impl Model {
@@ -49,7 +50,8 @@ impl Model {
                 ),
             ],
             id_generator: IdGenerator::new(),
-            minerals: 0,
+            minerals: 10.0,
+            split_roots: true,
         };
         model.new_root(Root {
             position: vec2(0.0, 0.0),
@@ -74,6 +76,12 @@ impl Model {
         match message {
             Message::SpawnAttractor { pos } => {
                 self.spawn_attractor(pos);
+            }
+            Message::SplitRoot => {
+                if self.minerals >= self.rules.split_cost {
+                    self.minerals -= self.rules.split_cost;
+                    self.split_roots = true;
+                }
             }
         }
     }

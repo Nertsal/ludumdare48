@@ -11,6 +11,7 @@ pub struct Renderer {
 }
 
 pub enum Message {
+    SplitRoot,
     SpawnAttractor { pos: Vec2<f32> },
 }
 
@@ -103,12 +104,13 @@ impl Renderer {
     }
     pub fn handle_event(&mut self, event: &geng::Event) -> Option<Message> {
         match event {
-            geng::Event::MouseDown {
-                position,
-                button: geng::MouseButton::Left,
-            } => Some(Message::SpawnAttractor {
-                pos: self.camera_to_world(position.map(|x| x as f32)),
-            }),
+            geng::Event::MouseDown { position, button } => match button {
+                geng::MouseButton::Left => Some(Message::SplitRoot),
+                geng::MouseButton::Right => Some(Message::SpawnAttractor {
+                    pos: self.camera_to_world(position.map(|x| x as f32)),
+                }),
+                _ => None,
+            },
             _ => None,
         }
     }
