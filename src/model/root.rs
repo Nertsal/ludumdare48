@@ -26,6 +26,7 @@ pub struct Root {
 pub enum RootType {
     Node,
     Final,
+    Consumer { position: Position },
     Head { velocity: Velocity },
 }
 
@@ -51,59 +52,103 @@ impl Model {
     }
 
     fn update_root(&mut self, root: &mut Root, root_id: Id) {
-        if let RootType::Head { velocity } = &mut root.root_type {
-            if let Some((index, attractor)) = self
-                .tree_roots
-                .attractors
-                .iter()
-                .enumerate()
-                .find(|(_, attractor)| attractor.root == root_id)
-            {
-                if attractor.position.y < root.position.y {
-                    self.tree_roots.attractors.remove(index);
-                } else {
-                    let direction = (attractor.position - root.position).normalize();
-                    *velocity = (*velocity
-                        + direction / self.rules.root_inertia * self.fixed_delta_time)
-                        .clamp(self.rules.root_growth_speed);
-                }
-            }
-
-            if self.split_roots {
-                self.split_root(root);
-            } else {
-                let velocity = *velocity;
-                self.grow_root(root, velocity);
-            }
-            for (&other_id, other) in &self.tree_roots.roots {
-                if other_id != root_id
-                    && Some(other_id) != root.parent_root
-                    && (other.position - root.position).len()
-                        <= self.fixed_delta_time * self.rules.root_growth_speed / 2.0
+        match &mut root.root_type {
+            RootType::Head { velocity } => {
+                if let Some((index, attractor)) = self
+                    .tree_roots
+                    .attractors
+                    .iter()
+                    .enumerate()
+                    .find(|(_, attractor)| attractor.root == root_id)
                 {
+                    if attractor.position.y < root.position.y {
+                        self.tree_roots.attractors.remove(index);
+                    } else {
+                        let direction = (attractor.position - root.position).normalize();
+                        *velocity = (*velocity
+                            + direction / self.rules.root_inertia * self.fixed_delta_time)
+                            .clamp(self.rules.root_growth_speed);
+                    }
+                }
+
+                if self.split_roots {
+                    self.split_root(root);
+                } else {
+                    let velocity = *velocity;
+                    self.grow_root(root, velocity);
+                }
+                for (&other_id, other) in &self.tree_roots.roots {
+                    if other_id != root_id
+                        && Some(other_id) != root.parent_root
+                        && (other.position - root.position).len()
+                            <= self.fixed_delta_time * self.rules.root_growth_speed / 2.0
+                    {
+                        root.root_type = RootType::Final;
+                        return;
+                    }
+                }
+
+                if root.position.x.abs() > self.rules.chamber_width as f32 {
                     root.root_type = RootType::Final;
                     return;
                 }
+
+                let position = get_tile_pos(root.position);
+                if let Some(tile) = self.tiles.get_mut(&position) {
+                    match tile {
+                        Tile::Stone => {
+                            root.root_type = RootType::Final;
+                        }
+                        Tile::Mineral { .. } => {
+                            root.root_type = RootType::Consumer { position };
+                        }
+                        _ => (),
+                    }
+                }
             }
-        }
-
-        if root.position.x.abs() > self.rules.chamber_width as f32 {
-            root.root_type = RootType::Final;
-            return;
-        }
-
-        if let Some(tile) = self.tiles.get_mut(&get_tile_pos(root.position)) {
-            match tile {
-                Tile::Stone => {
+            RootType::Consumer { position } => {
+                let consume_limit = self.rules.mineral_consume_speed * self.fixed_delta_time;
+                let consumed = self.consume(&mut HashSet::new(), *position, consume_limit);
+                if consumed == 0.0 {
                     root.root_type = RootType::Final;
                 }
-                Tile::Mineral { minerals } => {
-                    root.root_type = RootType::Final;
-                    self.minerals += *minerals;
-                    *minerals = 0.0;
-                }
-                _ => (),
             }
+            _ => (),
+        }
+    }
+
+    fn consume(
+        &mut self,
+        consumed_pos: &mut HashSet<Position>,
+        position: Position,
+        mut consume_limit: f32,
+    ) -> f32 {
+        if consumed_pos.contains(&position) {
+            return 0.0;
+        };
+        if let Some(Tile::Mineral { minerals }) = self.tiles.get_mut(&position) {
+            let consume = minerals.min(consume_limit);
+            self.minerals += consume;
+            *minerals -= consume;
+            consume_limit -= consume;
+            consumed_pos.insert(position);
+            let consume_neighbours = if consume_limit > 0.0 {
+                let mut consumed = 0.0;
+                for neighbour in get_neighbours(position) {
+                    let consume = self.consume(consumed_pos, neighbour, consume_limit);
+                    consumed += consume;
+                    consume_limit -= consume;
+                    if consume_limit <= 0.0 {
+                        break;
+                    }
+                }
+                consumed
+            } else {
+                0.0
+            };
+            consume + consume_neighbours
+        } else {
+            0.0
         }
     }
 
@@ -180,4 +225,12 @@ fn get_random_dir(min_angle: f32, max_angle: f32) -> Velocity {
 
 fn get_tile_pos(pos: Vec2<f32>) -> Position {
     pos.map(|x| x.floor() as i32)
+}
+
+fn get_neighbours(pos: Position) -> impl Iterator<Item = Position> {
+    ((pos.x - 1)..=(pos.x + 1)).flat_map(move |x| {
+        ((pos.y - 1)..=(pos.y + 1))
+            .filter(move |&y| y != 0 || x != 0)
+            .map(move |y| vec2(x, y))
+    })
 }

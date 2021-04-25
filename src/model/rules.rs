@@ -6,6 +6,7 @@ pub struct Rules {
     pub root_inertia: f32,
     pub mineral_frequency: f32,
     pub mineral_richness: f32,
+    pub mineral_consume_speed: f32,
     pub split_cost: f32,
     pub attractor_cost: f32,
 }
@@ -19,7 +20,8 @@ impl Default for Rules {
             root_inertia: 1.0,
             mineral_frequency: 0.1,
             mineral_richness: 5.0,
-            split_cost: 2.0,
+            mineral_consume_speed: 1.0,
+            split_cost: 1.0,
             attractor_cost: 5.0,
         }
     }
