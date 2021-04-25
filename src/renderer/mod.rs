@@ -35,34 +35,68 @@ impl Renderer {
     fn offset(&self) -> Vec2<f32> {
         vec2(0.0, -self.current_depth)
     }
+    fn local_offset(&self) -> Vec2<f32> {
+        self.offset() * self.scale()
+    }
     pub fn update(&mut self, delta_time: f32) {
         self.current_depth += (self.target_depth - self.current_depth) * delta_time * 2.0;
     }
-    pub fn draw(&mut self, framebuffer: &mut ugli::Framebuffer, model: &model::Model) {
-        let mut texture =
-            ugli::Texture::new_uninitialized(self.geng.ugli(), framebuffer.size() / 1);
-        texture.set_filter(ugli::Filter::Nearest);
+    pub fn draw(
+        &mut self,
+        framebuffer: &mut ugli::Framebuffer,
+        model: &model::Model,
+        texture: &mut Option<ugli::Texture>,
+    ) {
+        ugli::clear(framebuffer, Some(Color::BLACK), None);
+        let screen_center = framebuffer.size().map(|x| (x as f32) / 2.0);
+        self.screen_center = screen_center;
+        let size = framebuffer.size();
+        let texture_size = vec2(size.x, size.y * 2);
+
+        if texture.is_none() {
+            let mut temp_texture = ugli::Texture::new_uninitialized(self.geng.ugli(), texture_size);
+            temp_texture.set_filter(ugli::Filter::Nearest);
+            *texture = Some(temp_texture);
+        }
+
         {
             let mut framebuffer = ugli::Framebuffer::new_color(
                 self.geng.ugli(),
-                ugli::ColorAttachment::Texture(&mut texture),
+                ugli::ColorAttachment::Texture(texture.as_mut().unwrap()),
             );
             self.draw_impl(&mut framebuffer, model);
         }
         let size = framebuffer.size().map(|x| x as f32);
+        let offset = self.local_offset();
         self.geng.draw_2d().textured_quad(
             framebuffer,
-            AABB::pos_size(vec2(0.0, size.y), vec2(size.x, -size.y)),
-            &texture,
+            AABB::pos_size(
+                vec2(
+                    offset.x,
+                    size.y as f32 * 0.75 - offset.y - texture_size.y as f32,
+                ),
+                vec2(texture_size.x as f32, texture_size.y as f32),
+            ),
+            texture.as_ref().unwrap(),
+            Color::WHITE,
+        );
+
+        let text = format!("Minerals: {}", model.minerals.floor());
+        self.geng
+            .default_font()
+            .draw(framebuffer, &text, vec2(20.0, 20.0), 25.0, Color::WHITE);
+
+        let text = format!("Score: {}", self.current_depth.floor());
+        self.geng.default_font().draw_aligned(
+            framebuffer,
+            &text,
+            vec2(self.screen_center.x, self.screen_center.y * 2.0 - 50.0),
+            0.5,
+            25.0,
             Color::WHITE,
         );
     }
     fn draw_impl(&mut self, framebuffer: &mut ugli::Framebuffer, model: &model::Model) {
-        ugli::clear(framebuffer, Some(Color::BLACK), None);
-
-        let screen_center = framebuffer.size().map(|x| (x as f32) / 2.0);
-        self.screen_center = screen_center;
-
         self.target_depth = model
             .tree_roots
             .roots
@@ -85,10 +119,10 @@ impl Renderer {
                     (minerals / model.rules.mineral_richness).clamp(0.0, 1.0),
                 ),
             };
-            let local_pos = self.world_to_camera(pos.map(|x| x as f32));
+            let local_pos = self.world_to_texture(pos.map(|x| x as f32));
             self.geng.draw_2d().quad(
                 framebuffer,
-                AABB::from_corners(local_pos, local_pos + vec2(1.0, -1.0) * self.scale()),
+                AABB::from_corners(local_pos, local_pos + vec2(1.0, 1.0) * self.scale()),
                 color,
             );
         }
@@ -100,16 +134,16 @@ impl Renderer {
             .filter(|root| self.is_on_screen(root.position))
         {
             let color = Color::rgb(0.2, 0.2, 0.0);
-            let local_pos = self.world_to_camera(root.position);
+            let local_pos = self.world_to_texture(root.position);
             if let Some(parent) = root.parent_root {
                 let parent_pos = model.tree_roots.roots[&parent].position;
-                let parent_pos = self.world_to_camera(parent_pos);
+                let parent_pos = self.world_to_texture(parent_pos);
                 let vertices = [local_pos, parent_pos];
                 self.geng.draw_2d().draw(
                     framebuffer,
                     &vertices,
                     color,
-                    ugli::DrawMode::LineStrip {
+                    ugli::DrawMode::Lines {
                         line_width: self.root_width * self.scale,
                     },
                 )
@@ -118,7 +152,7 @@ impl Renderer {
                     framebuffer,
                     AABB::from_corners(
                         local_pos,
-                        local_pos + vec2(1.0, -1.0) * self.root_width * self.scale,
+                        local_pos + vec2(1.0, 1.0) * self.root_width * self.scale,
                     ),
                     color,
                 );
@@ -132,25 +166,16 @@ impl Renderer {
             .filter(|attractor| self.is_on_screen(attractor.position))
         {
             let color = Color::BLUE;
-            let local_pos = self.world_to_camera(attractor.position);
+            let local_pos = self.world_to_texture(attractor.position);
             self.geng
                 .draw_2d()
                 .circle(framebuffer, local_pos, self.attractor_size, color);
         }
 
-        let text = format!("Minerals: {}", model.minerals.floor());
-        self.geng
-            .default_font()
-            .draw(framebuffer, &text, vec2(20.0, 20.0), 25.0, Color::WHITE);
-
-        let text = format!("Score: {}", self.current_depth.floor());
-        self.geng.default_font().draw_aligned(
+        self.geng.draw_2d().quad(
             framebuffer,
-            &text,
-            vec2(self.screen_center.x, self.screen_center.y * 2.0 - 50.0),
-            0.5,
-            25.0,
-            Color::WHITE,
+            AABB::pos_size(vec2(0.0, -50.0), vec2(100.0, 100.0)),
+            Color::RED,
         );
     }
     pub fn handle_event(&mut self, event: &geng::Event) -> Option<Message> {
@@ -170,17 +195,19 @@ impl Renderer {
             _ => None,
         }
     }
-    fn world_to_camera(&self, pos: Vec2<f32>) -> Vec2<f32> {
-        let pos = vec2(pos.x, -pos.y);
-        (pos - self.offset()) * self.scale() + self.screen_center
+    fn world_to_texture(&self, pos: Vec2<f32>) -> Vec2<f32> {
+        pos * self.scale() + vec2(self.screen_center.x, 0.0)
     }
     fn camera_to_world(&self, pos: Vec2<f32>) -> Vec2<f32> {
-        let pos = (pos - self.screen_center) / self.scale() + self.offset();
+        let pos = (pos - vec2(self.screen_center.x, 0.0)) / self.scale() + self.offset();
         let pos = vec2(pos.x, -pos.y);
         pos
     }
     fn is_on_screen(&self, pos: Vec2<f32>) -> bool {
-        let local_pos = self.world_to_camera(pos);
-        local_pos.y >= 0.0 && local_pos.y <= self.screen_center.y * 2.0
+        let local_pos = self.world_to_texture(pos) - self.local_offset();
+        local_pos.y >= 0.0
+            && local_pos.y <= self.screen_center.y * 2.0
+            && local_pos.x >= 0.0
+            && local_pos.x <= self.screen_center.x * 2.0
     }
 }

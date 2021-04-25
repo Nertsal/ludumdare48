@@ -7,6 +7,7 @@ use model::*;
 use renderer::*;
 
 struct State {
+    texture: Option<ugli::Texture>,
     model: Model,
     renderer: Renderer,
 }
@@ -14,6 +15,7 @@ struct State {
 impl State {
     fn new(geng: &Rc<Geng>) -> Self {
         Self {
+            texture: None,
             renderer: Renderer::new(geng),
             model: Model::new(),
         }
@@ -26,7 +28,8 @@ impl geng::State for State {
         self.renderer.update(delta_time as f32);
     }
     fn draw(&mut self, framebuffer: &mut ugli::Framebuffer) {
-        self.renderer.draw(framebuffer, &self.model);
+        self.renderer
+            .draw(framebuffer, &self.model, &mut self.texture);
     }
     fn handle_event(&mut self, event: geng::Event) {
         self.model.handle_event(&event);
