@@ -5,6 +5,7 @@ pub struct Renderer {
     scale: f32,
     screen_center: Vec2<f32>,
     current_depth: f32,
+    target_depth: f32,
     tile_size: f32,
     root_width: f32,
     attractor_size: f32,
@@ -22,6 +23,7 @@ impl Renderer {
             scale: 1.0,
             screen_center: vec2(0.0, 0.0),
             current_depth: 0.0,
+            target_depth: 0.0,
             tile_size: 10.0,
             root_width: 5.0,
             attractor_size: 3.0,
@@ -33,13 +35,15 @@ impl Renderer {
     fn offset(&self) -> Vec2<f32> {
         vec2(0.0, -self.current_depth)
     }
-    pub fn update(&mut self, delta_time: f32) {}
+    pub fn update(&mut self, delta_time: f32) {
+        self.current_depth += (self.target_depth - self.current_depth) * delta_time * 2.0;
+    }
     pub fn draw(&mut self, framebuffer: &mut ugli::Framebuffer, model: &model::Model) {
         ugli::clear(framebuffer, Some(Color::BLACK), None);
         let screen_center = framebuffer.size().map(|x| (x as f32) / 2.0);
         self.screen_center = screen_center;
 
-        self.current_depth = model
+        self.target_depth = model
             .tree_roots
             .roots
             .values()
