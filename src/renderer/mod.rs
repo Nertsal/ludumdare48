@@ -120,6 +120,11 @@ impl Renderer {
                 .draw_2d()
                 .circle(framebuffer, local_pos, self.attractor_size, color);
         }
+
+        let text = format!("Minerals: {}", model.minerals);
+        self.geng
+            .default_font()
+            .draw(framebuffer, &text, vec2(20.0, 20.0),25.0, Color::WHITE);
     }
     pub fn handle_event(&mut self, event: &geng::Event) -> Option<Message> {
         match event {
