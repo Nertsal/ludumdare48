@@ -75,11 +75,12 @@ impl Model {
     pub fn handle_message(&mut self, message: Message) {
         match message {
             Message::SpawnAttractor { pos } => {
-                self.spawn_attractor(pos);
+                if self.try_spend(self.rules.attractor_cost) {
+                    self.spawn_attractor(pos);
+                }
             }
             Message::SplitRoot => {
-                if self.minerals >= self.rules.split_cost {
-                    self.minerals -= self.rules.split_cost;
+                if self.try_spend(self.rules.split_cost) {
                     self.split_roots = true;
                 }
             }
@@ -87,6 +88,13 @@ impl Model {
     }
     fn generate(&mut self, depth_start: i32, depth_end: i32) {
         self.generate_area(self.get_area(depth_start, depth_end));
+    }
+    fn try_spend(&mut self, cost: f32) -> bool {
+        if self.minerals >= cost {
+            self.minerals -= cost;
+            return true;
+        }
+        false
     }
 }
 
