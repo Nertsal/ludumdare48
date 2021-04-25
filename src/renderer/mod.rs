@@ -39,7 +39,27 @@ impl Renderer {
         self.current_depth += (self.target_depth - self.current_depth) * delta_time * 2.0;
     }
     pub fn draw(&mut self, framebuffer: &mut ugli::Framebuffer, model: &model::Model) {
+        let mut texture =
+            ugli::Texture::new_uninitialized(self.geng.ugli(), framebuffer.size() / 1);
+        texture.set_filter(ugli::Filter::Nearest);
+        {
+            let mut framebuffer = ugli::Framebuffer::new_color(
+                self.geng.ugli(),
+                ugli::ColorAttachment::Texture(&mut texture),
+            );
+            self.draw_impl(&mut framebuffer, model);
+        }
+        let size = framebuffer.size().map(|x| x as f32);
+        self.geng.draw_2d().textured_quad(
+            framebuffer,
+            AABB::pos_size(vec2(0.0, size.y), vec2(size.x, -size.y)),
+            &texture,
+            Color::WHITE,
+        );
+    }
+    fn draw_impl(&mut self, framebuffer: &mut ugli::Framebuffer, model: &model::Model) {
         ugli::clear(framebuffer, Some(Color::BLACK), None);
+
         let screen_center = framebuffer.size().map(|x| (x as f32) / 2.0);
         self.screen_center = screen_center;
 
@@ -89,7 +109,7 @@ impl Renderer {
                     framebuffer,
                     &vertices,
                     color,
-                    ugli::DrawMode::Lines {
+                    ugli::DrawMode::LineStrip {
                         line_width: self.root_width * self.scale,
                     },
                 )
