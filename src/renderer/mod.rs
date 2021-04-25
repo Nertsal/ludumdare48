@@ -93,15 +93,15 @@ impl Renderer {
                     &vertices,
                     color,
                     ugli::DrawMode::Lines {
-                        line_width: self.root_width,
+                        line_width: self.root_width * self.scale,
                     },
                 )
             } else {
                 self.geng.draw_2d().quad(
                     framebuffer,
                     AABB::from_corners(
-                        local_pos - vec2(0.5, 0.5) * self.root_width,
-                        local_pos + vec2(0.5, 0.5) * self.root_width,
+                        local_pos - vec2(0.5, 0.5) * self.root_width * self.scale,
+                        local_pos + vec2(0.5, 0.5) * self.root_width * self.scale,
                     ),
                     color,
                 );
