@@ -16,11 +16,21 @@ pub struct Model {
     pub tree_roots: TreeRoots,
     delta_time: f32,
     fixed_delta_time: f32,
-    rules: Rules,
+    pub rules: Rules,
     noises: [MultiNoise; 2],
     id_generator: IdGenerator,
     pub minerals: f32,
     split_roots: bool,
+}
+
+type Position = Vec2<i32>;
+type Area = AABB<i32>;
+
+#[derive(Debug, Clone)]
+pub enum Tile {
+    Dirt,
+    Stone,
+    Mineral { minerals: f32 },
 }
 
 impl Model {
@@ -96,14 +106,4 @@ impl Model {
         }
         false
     }
-}
-
-type Position = Vec2<i32>;
-type Area = AABB<i32>;
-
-#[derive(Debug, Clone)]
-pub enum Tile {
-    Dirt,
-    Stone,
-    Mineral,
 }

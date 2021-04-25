@@ -97,9 +97,9 @@ impl Model {
                 Tile::Stone => {
                     root.root_type = RootType::Final;
                 }
-                Tile::Mineral => {
+                Tile::Mineral { minerals } => {
                     root.root_type = RootType::Final;
-                    self.minerals += 1.0;
+                    self.minerals += minerals;
                 }
                 _ => (),
             }

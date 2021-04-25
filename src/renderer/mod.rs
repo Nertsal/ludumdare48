@@ -59,7 +59,11 @@ impl Renderer {
             let color = match tile {
                 Tile::Stone => Color::GRAY,
                 Tile::Dirt => Color::rgb(0.5, 0.5, 0.0),
-                Tile::Mineral => Color::CYAN,
+                Tile::Mineral { minerals } => Color::rgb(
+                    0.1,
+                    0.1,
+                    (minerals / model.rules.mineral_richness).clamp(0.0, 1.0),
+                ),
             };
             let local_pos = self.world_to_camera(pos.map(|x| x as f32));
             self.geng.draw_2d().quad(
