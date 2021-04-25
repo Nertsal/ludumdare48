@@ -92,14 +92,15 @@ impl Model {
             return;
         }
 
-        if let Some(tile) = self.tiles.get(&get_tile_pos(root.position)) {
+        if let Some(tile) = self.tiles.get_mut(&get_tile_pos(root.position)) {
             match tile {
                 Tile::Stone => {
                     root.root_type = RootType::Final;
                 }
                 Tile::Mineral { minerals } => {
                     root.root_type = RootType::Final;
-                    self.minerals += minerals;
+                    self.minerals += *minerals;
+                    *minerals = 0.0;
                 }
                 _ => (),
             }
