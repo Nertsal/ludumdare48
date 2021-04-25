@@ -68,10 +68,7 @@ impl Renderer {
             let local_pos = self.world_to_camera(pos.map(|x| x as f32));
             self.geng.draw_2d().quad(
                 framebuffer,
-                AABB::from_corners(
-                    local_pos - vec2(0.5, 0.5) * self.scale(),
-                    local_pos + vec2(0.5, 0.5) * self.scale(),
-                ),
+                AABB::from_corners(local_pos, local_pos + vec2(1.0, 1.0) * self.scale()),
                 color,
             );
         }
@@ -100,8 +97,8 @@ impl Renderer {
                 self.geng.draw_2d().quad(
                     framebuffer,
                     AABB::from_corners(
-                        local_pos - vec2(0.5, 0.5) * self.root_width * self.scale,
-                        local_pos + vec2(0.5, 0.5) * self.root_width * self.scale,
+                        local_pos,
+                        local_pos + vec2(1.0, 1.0) * self.root_width * self.scale,
                     ),
                     color,
                 );

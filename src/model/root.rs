@@ -94,7 +94,7 @@ impl Model {
                 }
 
                 let position = get_tile_pos(root.position);
-                if let Some(tile) = self.tiles.get_mut(&position) {
+                if let Some(tile) = self.tiles.get(&position) {
                     match tile {
                         Tile::Stone => {
                             root.root_type = RootType::Final;
