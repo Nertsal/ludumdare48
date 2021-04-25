@@ -32,6 +32,7 @@ pub enum RootType {
 #[derive(Debug, Clone)]
 pub struct Attractor {
     pub position: Vec2<f32>,
+    root: Id,
 }
 
 type Velocity = Vec2<f32>;
@@ -50,20 +51,21 @@ impl Model {
 
     fn update_root(&mut self, root: &mut Root, root_id: Id) {
         if let RootType::Head { velocity } = &mut root.root_type {
-            let mut closest_attractor: Option<(f32, &Attractor)> = None;
-            for attractor in &self.tree_roots.attractors {
-                let distance = (root.position - attractor.position).len();
-                if attractor.position.y > root.position.y
-                    && (closest_attractor.is_none() || distance < closest_attractor.unwrap().0)
-                {
-                    closest_attractor = Some((distance, attractor));
+            if let Some((index, attractor)) = self
+                .tree_roots
+                .attractors
+                .iter()
+                .enumerate()
+                .find(|(_, attractor)| attractor.root == root_id)
+            {
+                if attractor.position.y < root.position.y {
+                    self.tree_roots.attractors.remove(index);
+                } else {
+                    let direction = (attractor.position - root.position).normalize();
+                    *velocity = (*velocity
+                        + direction / self.rules.root_inertia * self.fixed_delta_time)
+                        .clamp(self.rules.root_growth_speed);
                 }
-            }
-            if let Some((_, attractor)) = closest_attractor {
-                let direction = (attractor.position - root.position).normalize();
-                *velocity = (*velocity
-                    + direction / self.rules.root_inertia * self.fixed_delta_time)
-                    .clamp(self.rules.root_growth_speed);
             }
 
             if global_rng().gen::<f32>() <= self.rules.split_chance * self.fixed_delta_time {
@@ -121,8 +123,27 @@ impl Model {
         id
     }
 
-    pub fn spawn_attractor(&mut self, pos: Vec2<f32>) {
-        self.tree_roots.attractors.push(Attractor { position: pos })
+    pub fn spawn_attractor(&mut self, position: Vec2<f32>) {
+        if let Some((&closest_id, _)) = self
+            .tree_roots
+            .roots
+            .iter()
+            .filter_map(|(id, root)| {
+                if let RootType::Head { .. } = root.root_type {
+                    if root.position.y < position.y {
+                        let distance = (root.position - position).len();
+                        return Some((id, distance));
+                    }
+                }
+                None
+            })
+            .min_by(|(_, da), (_, db)| da.partial_cmp(&db).unwrap())
+        {
+            self.tree_roots.attractors.push(Attractor {
+                position,
+                root: closest_id,
+            })
+        }
     }
 
     fn split_root(&mut self, root: &mut Root) {
