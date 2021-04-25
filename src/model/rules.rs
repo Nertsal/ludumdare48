@@ -12,8 +12,8 @@ pub struct Rules {
 impl Default for Rules {
     fn default() -> Self {
         Self {
-            root_growth_speed: 0.5,
-            chamber_width: 20,
+            root_growth_speed: 1.0,
+            chamber_width: 51,
             stone_frequency: 0.2,
             root_inertia: 1.0,
             mineral_frequency: 0.1,
