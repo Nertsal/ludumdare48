@@ -48,6 +48,14 @@ impl Model {
                 *self.tree_roots.roots.get_mut(&id).unwrap() = root;
             }
         }
+        let roots = &self.tree_roots.roots;
+        if self.split_roots {
+            for attractor in &mut self.tree_roots.attractors {
+                if let Some(closest_id) = Self::closest_root_id(roots, attractor.position) {
+                    attractor.root = closest_id;
+                }
+            }
+        }
         self.split_roots = false;
     }
 
@@ -170,9 +178,16 @@ impl Model {
     }
 
     pub fn spawn_attractor(&mut self, position: Vec2<f32>) {
-        if let Some((&closest_id, _)) = self
-            .tree_roots
-            .roots
+        if let Some(closest_id) = Self::closest_root_id(&self.tree_roots.roots, position) {
+            self.tree_roots.attractors.push(Attractor {
+                position,
+                root: closest_id,
+            })
+        }
+    }
+
+    fn closest_root_id(roots: &HashMap<Id, Root>, position: Vec2<f32>) -> Option<Id> {
+        roots
             .iter()
             .filter_map(|(id, root)| {
                 if let RootType::Head { .. } = root.root_type {
@@ -184,12 +199,7 @@ impl Model {
                 None
             })
             .min_by(|(_, da), (_, db)| da.partial_cmp(&db).unwrap())
-        {
-            self.tree_roots.attractors.push(Attractor {
-                position,
-                root: closest_id,
-            })
-        }
+            .map(|(&id, _)| id)
     }
 
     pub fn split_root(&mut self, root: &mut Root) {
