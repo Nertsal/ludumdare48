@@ -30,11 +30,22 @@ impl Renderer {
     fn scale(&self) -> f32 {
         self.scale * self.tile_size
     }
+    fn offset(&self) -> Vec2<f32> {
+        vec2(0.0, -self.current_depth)
+    }
     pub fn update(&mut self, delta_time: f32) {}
     pub fn draw(&mut self, framebuffer: &mut ugli::Framebuffer, model: &model::Model) {
         ugli::clear(framebuffer, Some(Color::BLACK), None);
         let screen_center = framebuffer.size().map(|x| (x as f32) / 2.0);
         self.screen_center = screen_center;
+
+        self.current_depth = model
+            .tree_roots
+            .roots
+            .values()
+            .map(|root| root.position.y)
+            .max_by(|a, b| a.partial_cmp(b).unwrap())
+            .unwrap();
 
         for (pos, tile) in model
             .tiles
@@ -115,20 +126,16 @@ impl Renderer {
         }
     }
     fn world_to_camera(&self, pos: Vec2<f32>) -> Vec2<f32> {
-        let offset = vec2(0.0, self.current_depth);
         let pos = vec2(pos.x, -pos.y);
-        (pos - offset) * self.scale() + self.screen_center
+        (pos - self.offset()) * self.scale() + self.screen_center
     }
     fn camera_to_world(&self, pos: Vec2<f32>) -> Vec2<f32> {
-        let offset = vec2(0.0, self.current_depth);
-        let pos = (pos - self.screen_center) / self.scale() + offset;
+        let pos = (pos - self.screen_center) / self.scale() + self.offset();
         let pos = vec2(pos.x, -pos.y);
         pos
     }
     fn is_on_screen(&self, pos: Vec2<f32>) -> bool {
-        let offset = vec2(0.0, self.current_depth);
-        let y_max = offset.y + self.screen_center.y / self.scale();
-        let y_min = offset.y - self.screen_center.y / self.scale();
-        pos.y >= y_min && pos.y <= y_max
+        let local_pos = self.world_to_camera(pos);
+        local_pos.y >= 0.0 && local_pos.y <= self.screen_center.y * 2.0
     }
 }
