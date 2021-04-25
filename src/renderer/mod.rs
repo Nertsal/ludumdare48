@@ -125,6 +125,16 @@ impl Renderer {
         self.geng
             .default_font()
             .draw(framebuffer, &text, vec2(20.0, 20.0), 25.0, Color::WHITE);
+
+        let text = format!("Score: {}", self.current_depth.floor());
+        self.geng.default_font().draw_aligned(
+            framebuffer,
+            &text,
+            vec2(self.screen_center.x, self.screen_center.y * 2.0 - 50.0),
+            0.5,
+            25.0,
+            Color::WHITE,
+        );
     }
     pub fn handle_event(&mut self, event: &geng::Event) -> Option<Message> {
         match event {
