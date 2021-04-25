@@ -1,4 +1,5 @@
 use super::*;
+use noise::Seedable;
 
 pub struct MultiNoise {
     noise: Box<dyn ::noise::NoiseFn<[f64; 2]> + Sync + Send>,
@@ -7,11 +8,13 @@ pub struct MultiNoise {
 
 impl MultiNoise {
     pub fn new(seed: u32, properties: &MultiNoiseProperties) -> Self {
-        use noise::Seedable;
         Self {
             noise: Box::new(::noise::OpenSimplex::new().set_seed(seed)),
             properties: properties.clone(),
         }
+    }
+    pub fn set_seed(&mut self, seed: u32) {
+        self.noise = Box::new(::noise::OpenSimplex::new().set_seed(seed));
     }
     pub fn get(&self, pos: Vec2<f32>) -> f32 {
         let mut frequency = 1.0;

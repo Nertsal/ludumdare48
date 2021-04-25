@@ -60,19 +60,31 @@ impl Model {
                 ),
             ],
             id_generator: IdGenerator::new(),
-            minerals: 10.0,
-            split_roots: true,
+            minerals: 0.0,
+            split_roots: false,
         };
-        model.new_root(Root {
+        model.reset();
+        model
+    }
+    fn reset(&mut self) {
+        self.tiles.clear();
+        self.tree_roots = TreeRoots::new();
+        for noise in &mut self.noises {
+            noise.set_seed(global_rng().gen());
+        }
+        self.id_generator = IdGenerator::new();
+        self.minerals = 10.0;
+        self.split_roots = true;
+
+        self.new_root(Root {
             position: vec2(0.0, 0.0),
             parent_root: None,
             root_type: RootType::Head {
-                velocity: vec2(0.0, model.rules.root_growth_speed),
+                velocity: vec2(0.0, self.rules.root_growth_speed),
             },
         });
-        model.fill_area(model.get_area(0, 20), Tile::Dirt);
-        model.generate(0, 100);
-        model
+        self.fill_area(self.get_area(0, 20), Tile::Dirt);
+        self.generate(0, 100);
     }
     pub fn update(&mut self, delta_time: f32) {
         self.delta_time += delta_time;
@@ -81,7 +93,12 @@ impl Model {
             self.update_roots();
         }
     }
-    pub fn handle_event(&mut self, event: &geng::Event) {}
+    pub fn handle_event(&mut self, event: &geng::Event) {
+        match event {
+            geng::Event::KeyDown { key: geng::Key::R } => self.reset(),
+            _ => (),
+        }
+    }
     pub fn handle_message(&mut self, message: Message) {
         match message {
             Message::SpawnAttractor { pos } => {

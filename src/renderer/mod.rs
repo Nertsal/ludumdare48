@@ -138,6 +138,11 @@ impl Renderer {
     }
     pub fn handle_event(&mut self, event: &geng::Event) -> Option<Message> {
         match event {
+            geng::Event::KeyDown { key: geng::Key::R } => {
+                self.target_depth = 0.0;
+                self.current_depth = 0.0;
+                None
+            }
             geng::Event::MouseDown { position, button } => match button {
                 geng::MouseButton::Left => Some(Message::SplitRoot),
                 geng::MouseButton::Right => Some(Message::SpawnAttractor {
