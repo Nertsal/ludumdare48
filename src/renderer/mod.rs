@@ -52,10 +52,10 @@ impl Renderer {
     fn gen_texture(
         &mut self,
         texture: &mut Option<ugli::Texture>,
-        framebuffer: &ugli::Framebuffer,
+        // framebuffer: &ugli::Framebuffer,
     ) {
-        let size = framebuffer.size();
-        self.texture_size = vec2(size.x, size.y * self.texture_buffer);
+        // let size = framebuffer.size();
+        self.texture_size = vec2(1024, 768 * self.texture_buffer); //vec2(size.x, size.y * self.texture_buffer);
         let mut temp_texture =
             ugli::Texture::new_uninitialized(self.geng.ugli(), self.texture_size);
         temp_texture.set_filter(ugli::Filter::Nearest);
@@ -73,7 +73,7 @@ impl Renderer {
         self.screen_center = screen_center;
 
         if texture.is_none() {
-            self.gen_texture(texture, framebuffer);
+            self.gen_texture(texture); //, framebuffer);
         }
 
         {
@@ -111,7 +111,7 @@ impl Renderer {
             self.texture_offset + (self.texture_buffer - 2) as f32 * self.screen_center.y * 2.0;
         if self.target_depth > overflow / self.scale() {
             self.texture_offset += (self.texture_buffer - 3) as f32 * self.screen_center.y * 2.0;
-            self.gen_texture(texture, framebuffer);
+            self.gen_texture(texture); //, framebuffer);
         }
     }
     fn draw_impl(&mut self, framebuffer: &mut ugli::Framebuffer, view: &model::ClientView) {
