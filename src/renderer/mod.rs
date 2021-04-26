@@ -84,7 +84,7 @@ impl Renderer {
             self.draw_impl(&mut framebuffer, view);
         }
         let size = self.texture_size.map(|x| x as f32);
-        let pos0 = self.texture_to_camera(vec2(0.0, self.texture_offset)) - vec2(0.0, size.y);
+        let pos0 = self.texture_to_camera(vec2(0.0, 0.0)) - vec2(0.0, size.y);
         self.geng.draw_2d().textured_quad(
             framebuffer,
             AABB::pos_size(pos0, vec2(size.x, size.y)),
@@ -199,7 +199,7 @@ impl Renderer {
         }
     }
     fn world_to_texture(&self, pos: Vec2<f32>) -> Vec2<f32> {
-        pos * self.scale() + vec2(self.screen_center.x, 0.0)
+        pos * self.scale() + vec2(self.screen_center.x, -self.texture_offset)
     }
     fn texture_to_camera(&self, pos: Vec2<f32>) -> Vec2<f32> {
         let offset = self.local_offset();
