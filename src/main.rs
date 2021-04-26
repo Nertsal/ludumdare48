@@ -30,7 +30,6 @@ impl geng::State for State {
     fn draw(&mut self, framebuffer: &mut ugli::Framebuffer) {
         let view = if self.renderer.request_view {
             self.renderer.request_view = false;
-            println!("Requesting full view");
             self.model.get_client_view()
         } else {
             self.model.get_client_view_update()

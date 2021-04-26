@@ -54,7 +54,6 @@ impl Renderer {
         texture: &mut Option<ugli::Texture>,
         framebuffer: &ugli::Framebuffer,
     ) {
-        println!("Gen");
         let size = framebuffer.size();
         self.texture_size = vec2(size.x, size.y * self.texture_buffer);
         let mut temp_texture =
@@ -74,13 +73,6 @@ impl Renderer {
         self.screen_center = screen_center;
 
         if texture.is_none() {
-            self.gen_texture(texture, framebuffer);
-        }
-
-        let overflow =
-            self.texture_offset + (self.texture_buffer - 2) as f32 * self.screen_center.y * 2.0;
-        if self.target_depth > overflow / self.scale() {
-            self.texture_offset += (self.texture_buffer - 3) as f32 * self.screen_center.y * 2.0;
             self.gen_texture(texture, framebuffer);
         }
 
@@ -105,7 +97,7 @@ impl Renderer {
             .default_font()
             .draw(framebuffer, &text, vec2(20.0, 20.0), 25.0, Color::WHITE);
 
-        let text = format!("Score: {}", self.target_depth.floor());
+        let text = format!("Score: {}", view.current_depth.floor());
         self.geng.default_font().draw_aligned(
             framebuffer,
             &text,
@@ -114,6 +106,13 @@ impl Renderer {
             25.0,
             Color::WHITE,
         );
+
+        let overflow =
+            self.texture_offset + (self.texture_buffer - 2) as f32 * self.screen_center.y * 2.0;
+        if self.target_depth > overflow / self.scale() {
+            self.texture_offset += (self.texture_buffer - 3) as f32 * self.screen_center.y * 2.0;
+            self.gen_texture(texture, framebuffer);
+        }
     }
     fn draw_impl(&mut self, framebuffer: &mut ugli::Framebuffer, view: &model::ClientView) {
         self.target_depth = view.current_depth;
