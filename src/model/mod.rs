@@ -84,7 +84,7 @@ impl Model {
             },
         });
         self.fill_area(self.get_area(0, 20), Tile::Dirt);
-        self.generate(0, 100);
+        self.generate(0, 200);
     }
     pub fn update(&mut self, delta_time: f32) {
         self.delta_time += delta_time;

@@ -9,6 +9,9 @@ pub struct Renderer {
     tile_size: f32,
     root_width: f32,
     attractor_size: f32,
+    texture_offset: f32,
+    texture_buffer: usize,
+    texture_size: Vec2<usize>,
 }
 
 pub enum Message {
@@ -27,6 +30,9 @@ impl Renderer {
             tile_size: 10.0,
             root_width: 5.0,
             attractor_size: 3.0,
+            texture_offset: 0.0,
+            texture_buffer: 4,
+            texture_size: vec2(0, 0),
         }
     }
     fn scale(&self) -> f32 {
@@ -41,6 +47,19 @@ impl Renderer {
     pub fn update(&mut self, delta_time: f32) {
         self.current_depth += (self.target_depth - self.current_depth) * delta_time * 2.0;
     }
+    fn gen_texture(
+        &mut self,
+        texture: &mut Option<ugli::Texture>,
+        framebuffer: &ugli::Framebuffer,
+    ) {
+        println!("Gen");
+        let size = framebuffer.size();
+        self.texture_size = vec2(size.x, size.y * self.texture_buffer);
+        let mut temp_texture =
+            ugli::Texture::new_uninitialized(self.geng.ugli(), self.texture_size);
+        temp_texture.set_filter(ugli::Filter::Nearest);
+        *texture = Some(temp_texture);
+    }
     pub fn draw(
         &mut self,
         framebuffer: &mut ugli::Framebuffer,
@@ -50,13 +69,16 @@ impl Renderer {
         ugli::clear(framebuffer, Some(Color::BLACK), None);
         let screen_center = framebuffer.size().map(|x| (x as f32) / 2.0);
         self.screen_center = screen_center;
-        let size = framebuffer.size();
-        let texture_size = vec2(size.x, size.y * 2);
 
         if texture.is_none() {
-            let mut temp_texture = ugli::Texture::new_uninitialized(self.geng.ugli(), texture_size);
-            temp_texture.set_filter(ugli::Filter::Nearest);
-            *texture = Some(temp_texture);
+            self.gen_texture(texture, framebuffer);
+        }
+
+        let overflow =
+            self.texture_offset + (self.texture_buffer - 2) as f32 * self.screen_center.y * 2.0;
+        if self.target_depth > overflow / self.scale() {
+            self.texture_offset += (self.texture_buffer - 3) as f32 * self.screen_center.y * 2.0;
+            self.gen_texture(texture, framebuffer);
         }
 
         {
@@ -66,17 +88,11 @@ impl Renderer {
             );
             self.draw_impl(&mut framebuffer, model);
         }
-        let size = framebuffer.size().map(|x| x as f32);
-        let offset = self.local_offset();
+        let size = self.texture_size.map(|x| x as f32);
+        let pos0 = self.texture_to_camera(vec2(0.0, 0.0)) - vec2(0.0, size.y);
         self.geng.draw_2d().textured_quad(
             framebuffer,
-            AABB::pos_size(
-                vec2(
-                    offset.x,
-                    size.y as f32 * 0.75 - offset.y - texture_size.y as f32,
-                ),
-                vec2(texture_size.x as f32, texture_size.y as f32),
-            ),
+            AABB::pos_size(pos0, vec2(size.x, size.y)),
             texture.as_ref().unwrap(),
             Color::WHITE,
         );
@@ -171,12 +187,6 @@ impl Renderer {
                 .draw_2d()
                 .circle(framebuffer, local_pos, self.attractor_size, color);
         }
-
-        self.geng.draw_2d().quad(
-            framebuffer,
-            AABB::pos_size(vec2(0.0, -50.0), vec2(100.0, 100.0)),
-            Color::RED,
-        );
     }
     pub fn handle_event(&mut self, event: &geng::Event) -> Option<Message> {
         match event {
@@ -198,16 +208,25 @@ impl Renderer {
     fn world_to_texture(&self, pos: Vec2<f32>) -> Vec2<f32> {
         pos * self.scale() + vec2(self.screen_center.x, 0.0)
     }
+    fn texture_to_camera(&self, pos: Vec2<f32>) -> Vec2<f32> {
+        let offset = self.local_offset();
+        pos + vec2(
+            offset.x,
+            self.screen_center.y * 1.5 - offset.y - self.texture_offset,
+        )
+    }
     fn camera_to_world(&self, pos: Vec2<f32>) -> Vec2<f32> {
-        let pos = (pos - vec2(self.screen_center.x, 0.0)) / self.scale() + self.offset();
+        let pos = (pos - vec2(self.screen_center.x, self.screen_center.y * 1.5)) / self.scale()
+            + self.offset();
         let pos = vec2(pos.x, -pos.y);
         pos
     }
     fn is_on_screen(&self, pos: Vec2<f32>) -> bool {
-        let local_pos = self.world_to_texture(pos) - self.local_offset();
-        local_pos.y >= 0.0
-            && local_pos.y <= self.screen_center.y * 2.0
-            && local_pos.x >= 0.0
-            && local_pos.x <= self.screen_center.x * 2.0
+        // let local_pos = self.texture_to_camera(self.world_to_texture(pos));
+        // local_pos.y >= 0.0
+        //     && local_pos.y <= self.screen_center.y * 2.0
+        //     && local_pos.x >= 0.0
+        //     && local_pos.x <= self.screen_center.x * 2.0
+        true
     }
 }
