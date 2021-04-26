@@ -22,7 +22,7 @@ pub struct Model {
     noises: [MultiNoise; 2],
     id_generator: IdGenerator,
     pub minerals: f32,
-    split_roots: bool,
+    split_root: Option<(Id, Vec2<f32>)>,
     client_view_update: ClientView,
     current_depth: f32,
     generation_depth: i32,
@@ -66,7 +66,7 @@ impl Model {
             ],
             id_generator: IdGenerator::new(),
             minerals: 0.0,
-            split_roots: false,
+            split_root: None,
             client_view_update: ClientView::new(Rules::default()),
             current_depth: 0.0,
             generation_depth: 0,
@@ -82,7 +82,7 @@ impl Model {
         }
         self.id_generator = IdGenerator::new();
         self.minerals = 10.0;
-        self.split_roots = true;
+        self.split_root = None;
         self.generation_depth = 0;
         self.current_depth = 0.0;
         self.client_view_update = ClientView::new(self.rules.clone());
@@ -125,9 +125,9 @@ impl Model {
                     self.spawn_attractor(pos);
                 }
             }
-            Message::SplitRoot => {
-                if self.try_spend(self.rules.split_cost) {
-                    self.split_roots = true;
+            Message::SplitRoot { pos } => {
+                if self.can_spend(self.rules.split_cost) && self.split_towards(pos) {
+                    self.try_spend(self.rules.split_cost);
                 }
             }
         }
@@ -142,8 +142,11 @@ impl Model {
             self.generation_depth += self.rules.generation_depth_max;
         }
     }
+    fn can_spend(&mut self, cost: f32) -> bool {
+        self.minerals >= cost
+    }
     fn try_spend(&mut self, cost: f32) -> bool {
-        if self.minerals >= cost {
+        if self.can_spend(cost) {
             self.minerals -= cost;
             return true;
         }

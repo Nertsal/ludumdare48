@@ -49,14 +49,14 @@ impl Model {
             }
         }
         let roots = &self.tree_roots.roots;
-        if self.split_roots {
+        if self.split_root.is_some() {
             for attractor in &mut self.tree_roots.attractors {
                 if let Some(closest_id) = Self::closest_root_id(roots, attractor.position) {
                     attractor.root = closest_id;
                 }
             }
         }
-        self.split_roots = false;
+        self.split_root = None;
     }
 
     fn update_root(&mut self, root: &mut Root, root_id: Id) {
@@ -79,12 +79,14 @@ impl Model {
                     }
                 }
 
-                if self.split_roots {
-                    self.split_root(root);
-                } else {
-                    let velocity = *velocity;
-                    self.grow_root(root, velocity);
+                let velocity = *velocity;
+                if let Some((id, target)) = self.split_root {
+                    if id == root_id {
+                        self.split_root(root, target);
+                    }
                 }
+                self.grow_root(root, velocity);
+
                 for (&other_id, other) in &self.tree_roots.roots {
                     if other_id != root_id
                         && Some(other_id) != root.parent_root.map(|(id, _)| id)
@@ -224,11 +226,29 @@ impl Model {
             .map(|(&id, _)| id)
     }
 
-    pub fn split_root(&mut self, root: &mut Root) {
-        let left_dir = get_random_dir(f32::PI * 2.0 / 3.0, f32::PI * 5.0 / 6.0);
+    pub fn split_towards(&mut self, position: Vec2<f32>) -> bool {
+        if let Some(closest) = Self::closest_root_id(&self.tree_roots.roots, position) {
+            self.split_root = Some((closest, position));
+            return true;
+        }
+        false
+    }
+
+    pub fn split_root(&mut self, root: &mut Root, target: Vec2<f32>) {
+        let (left_dir, right_dir) = if target.x > root.position.x {
+            (
+                get_random_dir(f32::PI * 2.0 / 3.0, f32::PI * 5.0 / 6.0),
+                (target - root.position).normalize(),
+            )
+        } else {
+            (
+                (target - root.position).normalize(),
+                get_random_dir(f32::PI / 6.0, f32::PI / 3.0),
+            )
+        };
         let left_pos = root.position + left_dir * self.fixed_delta_time;
-        let right_dir = get_random_dir(f32::PI / 6.0, f32::PI / 3.0);
         let right_pos = root.position + right_dir * self.fixed_delta_time;
+
         let id = self.new_root(Root {
             position: root.position,
             parent_root: root.parent_root,
