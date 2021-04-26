@@ -71,7 +71,7 @@ impl Model {
             current_depth: 0.0,
             generation_depth: 0,
         };
-        model.client_view_update.rules = self.rules.clone();
+        model.client_view_update.rules = model.rules.clone();
         model.reset();
         model
     }
