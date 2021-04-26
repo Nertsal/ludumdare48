@@ -13,6 +13,8 @@ pub struct Rules {
     pub generation_depth_min: i32,
     pub deletion_depth: i32,
     pub root_size: f32,
+    pub attractor_distance: f32,
+    pub attractor_strength: f32,
 }
 
 impl Default for Rules {
@@ -31,6 +33,8 @@ impl Default for Rules {
             generation_depth_min: 100,
             deletion_depth: 50,
             root_size: 0.1,
+            attractor_distance: 10.0,
+            attractor_strength: 1.0,
         }
     }
 }
