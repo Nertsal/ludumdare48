@@ -29,7 +29,7 @@ impl Default for Rules {
             attractor_cost: 5.0,
             generation_depth_max: 200,
             generation_depth_min: 100,
-            deletion_depth: 50,
+            deletion_depth: 20,
             root_size: 0.1,
         }
     }
