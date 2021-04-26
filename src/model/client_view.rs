@@ -9,10 +9,10 @@ pub struct ClientView {
     pub attractors: Vec<ViewEvent<Attractor>>,
 }
 
-impl Default for ClientView {
-    fn default() -> Self {
+impl ClientView {
+    pub fn new(rules: Rules) -> Self {
         Self {
-            rules: Rules::default(),
+            rules,
             current_depth: 0.0,
             minerals: 0.0,
             tiles: HashMap::new(),

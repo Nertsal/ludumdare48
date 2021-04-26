@@ -67,15 +67,14 @@ impl Model {
             id_generator: IdGenerator::new(),
             minerals: 0.0,
             split_roots: false,
-            client_view_update: ClientView::default(),
+            client_view_update: ClientView::new(Rules::default()),
             current_depth: 0.0,
             generation_depth: 0,
         };
-        model.client_view_update.rules = model.rules.clone();
         model.reset();
         model
     }
-    fn reset(&mut self) {
+    pub fn reset(&mut self) {
         self.tiles.clear();
         self.tree_roots = TreeRoots::new();
         for noise in &mut self.noises {
@@ -84,6 +83,9 @@ impl Model {
         self.id_generator = IdGenerator::new();
         self.minerals = 10.0;
         self.split_roots = true;
+        self.generation_depth = 0;
+        self.current_depth = 0.0;
+        self.client_view_update = ClientView::new(self.rules.clone());
 
         self.new_root(Root {
             position: vec2(0.0, 0.0),
@@ -115,12 +117,7 @@ impl Model {
             self.generate();
         }
     }
-    pub fn handle_event(&mut self, event: &geng::Event) {
-        match event {
-            geng::Event::KeyDown { key: geng::Key::R } => self.reset(),
-            _ => (),
-        }
-    }
+    pub fn handle_event(&mut self, event: &geng::Event) {}
     pub fn handle_message(&mut self, message: Message) {
         match message {
             Message::SpawnAttractor { pos } => {

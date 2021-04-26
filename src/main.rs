@@ -20,6 +20,10 @@ impl State {
             model: Model::new(),
         }
     }
+    fn reset(&mut self) {
+        self.renderer.reset(&mut self.texture);
+        self.model.reset();
+    }
 }
 
 impl geng::State for State {
@@ -37,6 +41,11 @@ impl geng::State for State {
         self.renderer.draw(framebuffer, &view, &mut self.texture);
     }
     fn handle_event(&mut self, event: geng::Event) {
+        match event {
+            geng::Event::KeyDown { key: geng::Key::R } => self.reset(),
+            _ => (),
+        }
+
         self.model.handle_event(&event);
         if let Some(message) = self.renderer.handle_event(&event) {
             self.model.handle_message(message);

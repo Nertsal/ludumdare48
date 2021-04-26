@@ -37,6 +37,13 @@ impl Renderer {
             request_view: true,
         }
     }
+    pub fn reset(&mut self, texture: &mut Option<ugli::Texture>) {
+        self.target_depth = 0.0;
+        self.current_depth = 0.0;
+        self.texture_offset = 0.0;
+        self.request_view = true;
+        *texture = None;
+    }
     fn scale(&self) -> f32 {
         self.scale * self.tile_size
     }
@@ -55,7 +62,9 @@ impl Renderer {
         // framebuffer: &ugli::Framebuffer,
     ) {
         // let size = framebuffer.size();
-        self.texture_size = vec2(1024, 768 * self.texture_buffer); //vec2(size.x, size.y * self.texture_buffer);
+        let size = vec2(1024, 768);
+        self.texture_size = vec2(size.x, size.y * self.texture_buffer);
+        self.screen_center = size.map(|x| (x as f32) / 2.0);
         let mut temp_texture =
             ugli::Texture::new_uninitialized(self.geng.ugli(), self.texture_size);
         temp_texture.set_filter(ugli::Filter::Nearest);
@@ -69,8 +78,6 @@ impl Renderer {
         texture: &mut Option<ugli::Texture>,
     ) {
         ugli::clear(framebuffer, Some(Color::BLACK), None);
-        let screen_center = framebuffer.size().map(|x| (x as f32) / 2.0);
-        self.screen_center = screen_center;
 
         if texture.is_none() {
             self.gen_texture(texture); //, framebuffer);
@@ -183,11 +190,6 @@ impl Renderer {
     }
     pub fn handle_event(&mut self, event: &geng::Event) -> Option<Message> {
         match event {
-            geng::Event::KeyDown { key: geng::Key::R } => {
-                self.target_depth = 0.0;
-                self.current_depth = 0.0;
-                None
-            }
             geng::Event::MouseDown { position, button } => match button {
                 geng::MouseButton::Left => Some(Message::SplitRoot),
                 geng::MouseButton::Right => Some(Message::SpawnAttractor {
