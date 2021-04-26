@@ -24,7 +24,6 @@ impl State {
 
 impl geng::State for State {
     fn update(&mut self, delta_time: f64) {
-        let delta_time = delta_time * 5.0;
         self.model.update(delta_time as f32);
         self.renderer.update(delta_time as f32);
     }

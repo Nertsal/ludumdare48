@@ -18,7 +18,6 @@ impl Model {
     }
 
     pub fn generate_area(&mut self, area: Area) {
-        println!("Generating: {}..{}", area.y_min, area.y_max);
         for y in area.y_min..=area.y_max {
             for x in area.x_min..=area.x_max {
                 let position = vec2(x, y);
