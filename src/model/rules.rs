@@ -12,6 +12,7 @@ pub struct Rules {
     pub generation_depth_max: i32,
     pub generation_depth_min: i32,
     pub deletion_depth: i32,
+    pub root_size: f32,
 }
 
 impl Default for Rules {
@@ -29,6 +30,7 @@ impl Default for Rules {
             generation_depth_max: 200,
             generation_depth_min: 100,
             deletion_depth: 50,
+            root_size: 0.1,
         }
     }
 }

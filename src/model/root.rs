@@ -90,17 +90,15 @@ impl Model {
                 for (&other_id, other) in &self.tree_roots.roots {
                     if other_id != root_id
                         && Some(other_id) != root.parent_root.map(|(id, _)| id)
-                        && (other.position - root.position).len()
-                            <= self.fixed_delta_time * self.rules.root_growth_speed / 2.0
+                        && (other.position - root.position).len() <= self.rules.root_size
                     {
                         root.root_type = RootType::Final;
-                        return;
+                        break;
                     }
                 }
 
                 if root.position.x.abs() > self.rules.chamber_width as f32 {
                     root.root_type = RootType::Final;
-                    return;
                 }
 
                 let position = get_tile_pos(root.position);
@@ -246,8 +244,10 @@ impl Model {
                 get_random_dir(f32::PI / 6.0, f32::PI / 3.0),
             )
         };
-        let left_pos = root.position + left_dir * self.fixed_delta_time;
-        let right_pos = root.position + right_dir * self.fixed_delta_time;
+        let left_pos =
+            root.position + left_dir * self.fixed_delta_time * self.rules.root_growth_speed;
+        let right_pos =
+            root.position + right_dir * self.fixed_delta_time * self.rules.root_growth_speed;
 
         let id = self.new_root(Root {
             position: root.position,
