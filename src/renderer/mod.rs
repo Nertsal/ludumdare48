@@ -3,7 +3,7 @@ use super::*;
 pub struct Renderer {
     geng: Rc<Geng>,
     scale: f32,
-    screen_center: Vec2<f32>,
+    texture_center: Vec2<f32>,
     current_depth: f32,
     target_depth: f32,
     tile_size: f32,
@@ -12,8 +12,11 @@ pub struct Renderer {
     texture_offset: f32,
     texture_buffer: usize,
     texture_size: Vec2<usize>,
+    screen_size: Vec2<usize>,
     pub request_view: bool,
 }
+
+const DEFAULT_SCREEN_SIZE: Vec2<usize> = Vec2 { x: 1024, y: 768 };
 
 pub enum Message {
     SplitRoot,
@@ -25,7 +28,7 @@ impl Renderer {
         Self {
             geng: geng.clone(),
             scale: 1.0,
-            screen_center: vec2(0.0, 0.0),
+            texture_center: vec2(0.0, 0.0),
             current_depth: 0.0,
             target_depth: 0.0,
             tile_size: 10.0,
@@ -34,6 +37,7 @@ impl Renderer {
             texture_offset: 0.0,
             texture_buffer: 4,
             texture_size: vec2(0, 0),
+            screen_size: vec2(0, 0),
             request_view: true,
         }
     }
@@ -62,9 +66,9 @@ impl Renderer {
         // framebuffer: &ugli::Framebuffer,
     ) {
         // let size = framebuffer.size();
-        let size = vec2(1024, 768);
+        let size = DEFAULT_SCREEN_SIZE;
         self.texture_size = vec2(size.x, size.y * self.texture_buffer);
-        self.screen_center = size.map(|x| (x as f32) / 2.0);
+        self.texture_center = size.map(|x| (x as f32) / 2.0);
         let mut temp_texture =
             ugli::Texture::new_uninitialized(self.geng.ugli(), self.texture_size);
         temp_texture.set_filter(ugli::Filter::Nearest);
@@ -78,6 +82,7 @@ impl Renderer {
         texture: &mut Option<ugli::Texture>,
     ) {
         ugli::clear(framebuffer, Some(Color::BLACK), None);
+        self.screen_size = framebuffer.size();
 
         if texture.is_none() {
             self.gen_texture(texture); //, framebuffer);
@@ -90,11 +95,19 @@ impl Renderer {
             );
             self.draw_impl(&mut framebuffer, view);
         }
-        let size = self.texture_size.map(|x| x as f32);
-        let pos0 = self.texture_to_camera(vec2(0.0, 0.0)) - vec2(0.0, size.y);
+        let size = self.screen_size.map(|x| x as f32);
+        let converter = vec2(
+            size.x / DEFAULT_SCREEN_SIZE.x as f32,
+            size.y / DEFAULT_SCREEN_SIZE.y as f32,
+        );
+        let texture_size = vec2(
+            self.texture_size.x as f32 * converter.x,
+            self.texture_size.y as f32 * converter.y,
+        );
+        let pos0 = self.texture_to_camera(vec2(0.0, 0.0)) - vec2(0.0, texture_size.y);
         self.geng.draw_2d().textured_quad(
             framebuffer,
-            AABB::pos_size(pos0, vec2(size.x, size.y)),
+            AABB::pos_size(pos0, texture_size),
             texture.as_ref().unwrap(),
             Color::WHITE,
         );
@@ -108,16 +121,15 @@ impl Renderer {
         self.geng.default_font().draw_aligned(
             framebuffer,
             &text,
-            vec2(self.screen_center.x, self.screen_center.y * 2.0 - 50.0),
+            vec2(size.x / 2.0, size.y - 50.0),
             0.5,
             25.0,
             Color::WHITE,
         );
 
-        let overflow =
-            self.texture_offset + (self.texture_buffer - 2) as f32 * self.screen_center.y * 2.0;
+        let overflow = self.texture_offset + (self.texture_buffer - 2) as f32 * size.y;
         if self.target_depth > overflow / self.scale() {
-            self.texture_offset += (self.texture_buffer - 3) as f32 * self.screen_center.y * 2.0;
+            self.texture_offset += (self.texture_buffer - 3) as f32 * size.y;
             self.gen_texture(texture); //, framebuffer);
         }
     }
@@ -201,19 +213,27 @@ impl Renderer {
         }
     }
     fn world_to_texture(&self, pos: Vec2<f32>) -> Vec2<f32> {
-        pos * self.scale() + vec2(self.screen_center.x, -self.texture_offset)
+        pos * self.scale() + vec2(self.texture_center.x, -self.texture_offset)
     }
     fn texture_to_camera(&self, pos: Vec2<f32>) -> Vec2<f32> {
         let offset = self.local_offset();
-        pos + vec2(
-            offset.x,
-            self.screen_center.y * 1.5 - offset.y - self.texture_offset,
+        let pos = pos
+            + vec2(
+                offset.x,
+                self.texture_center.y * 1.5 - offset.y - self.texture_offset,
+            );
+        vec2(
+            pos.x * self.screen_size.x as f32 / DEFAULT_SCREEN_SIZE.x as f32,
+            pos.y * self.screen_size.y as f32 / DEFAULT_SCREEN_SIZE.y as f32,
         )
     }
     fn camera_to_world(&self, pos: Vec2<f32>) -> Vec2<f32> {
-        let pos = (pos - vec2(self.screen_center.x, self.screen_center.y * 1.5)) / self.scale()
+        let pos = vec2(
+            pos.x * DEFAULT_SCREEN_SIZE.x as f32 / self.screen_size.x as f32,
+            pos.y * DEFAULT_SCREEN_SIZE.y as f32 / self.screen_size.y as f32,
+        );
+        let pos = (pos - vec2(self.texture_center.x, self.texture_center.y * 1.5)) / self.scale()
             + self.offset();
-        let pos = vec2(pos.x, -pos.y);
-        pos
+        vec2(pos.x, -pos.y)
     }
 }
