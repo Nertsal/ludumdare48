@@ -137,7 +137,11 @@ impl Model {
     }
     fn generate(&mut self) {
         if self.generation_depth - (self.current_depth as i32) < self.rules.generation_depth_min {
-            self.generate_area(self.get_area(self.generation_depth, self.generation_depth + self.rules.generation_depth_max));
+            self.remove_above(self.current_depth as i32 - self.rules.deletion_depth);
+            self.generate_area(self.get_area(
+                self.generation_depth,
+                self.generation_depth + self.rules.generation_depth_max,
+            ));
             self.generation_depth += self.rules.generation_depth_max;
         }
     }

@@ -11,6 +11,7 @@ pub struct Rules {
     pub attractor_cost: f32,
     pub generation_depth_max: i32,
     pub generation_depth_min: i32,
+    pub deletion_depth: i32,
 }
 
 impl Default for Rules {
@@ -27,6 +28,7 @@ impl Default for Rules {
             attractor_cost: 5.0,
             generation_depth_max: 100,
             generation_depth_min: 50,
+            deletion_depth: 50,
         }
     }
 }

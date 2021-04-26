@@ -29,6 +29,16 @@ impl Model {
         }
     }
 
+    pub fn remove_above(&mut self, depth: i32) {
+        self.tiles.retain(|pos, _| pos.y >= depth);
+        self.tree_roots
+            .roots
+            .retain(|_, root| root.position.y >= depth as f32);
+        self.tree_roots
+            .attractors
+            .retain(|attractor| attractor.position.y >= depth as f32);
+    }
+
     pub fn set_tile(&mut self, position: Position, tile: Tile) {
         self.client_view_update
             .tiles
