@@ -9,6 +9,8 @@ pub struct Rules {
     pub mineral_consume_speed: f32,
     pub split_cost: f32,
     pub attractor_cost: f32,
+    pub generation_depth_max: i32,
+    pub generation_depth_min: i32,
 }
 
 impl Default for Rules {
@@ -23,6 +25,8 @@ impl Default for Rules {
             mineral_consume_speed: 1.0,
             split_cost: 1.0,
             attractor_cost: 5.0,
+            generation_depth_max: 100,
+            generation_depth_min: 50,
         }
     }
 }

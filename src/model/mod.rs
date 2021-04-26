@@ -1,11 +1,13 @@
 use super::*;
 
+mod client_view;
 mod generation;
 mod id;
 mod multi_noise;
 mod root;
 mod rules;
 
+pub use client_view::*;
 use id::*;
 use multi_noise::*;
 use root::*;
@@ -21,6 +23,9 @@ pub struct Model {
     id_generator: IdGenerator,
     pub minerals: f32,
     split_roots: bool,
+    client_view_update: ClientView,
+    current_depth: f32,
+    generation_depth: i32,
 }
 
 type Position = Vec2<i32>;
@@ -62,6 +67,9 @@ impl Model {
             id_generator: IdGenerator::new(),
             minerals: 0.0,
             split_roots: false,
+            client_view_update: ClientView::default(),
+            current_depth: 0.0,
+            generation_depth: 0,
         };
         model.reset();
         model
@@ -84,13 +92,27 @@ impl Model {
             },
         });
         self.fill_area(self.get_area(0, 20), Tile::Dirt);
-        self.generate(0, 200);
+        self.generate();
     }
     pub fn update(&mut self, delta_time: f32) {
         self.delta_time += delta_time;
         if self.delta_time >= self.fixed_delta_time {
             self.delta_time -= self.fixed_delta_time;
             self.update_roots();
+
+            self.current_depth = self
+                .tree_roots
+                .roots
+                .values()
+                .map(|root| root.position.y)
+                .max_by(|a, b| a.partial_cmp(b).unwrap())
+                .unwrap();
+
+            self.client_view_update.rules = self.rules.clone();
+            self.client_view_update.current_depth = self.current_depth;
+            self.client_view_update.minerals = self.minerals;
+
+            self.generate();
         }
     }
     pub fn handle_event(&mut self, event: &geng::Event) {
@@ -113,8 +135,11 @@ impl Model {
             }
         }
     }
-    fn generate(&mut self, depth_start: i32, depth_end: i32) {
-        self.generate_area(self.get_area(depth_start, depth_end));
+    fn generate(&mut self) {
+        if self.generation_depth - (self.current_depth as i32) < self.rules.generation_depth_min {
+            self.generate_area(self.get_area(self.generation_depth, self.generation_depth + self.rules.generation_depth_max));
+            self.generation_depth += self.rules.generation_depth_max;
+        }
     }
     fn try_spend(&mut self, cost: f32) -> bool {
         if self.minerals >= cost {

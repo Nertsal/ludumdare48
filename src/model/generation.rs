@@ -30,11 +30,19 @@ impl Model {
     }
 
     pub fn set_tile(&mut self, position: Position, tile: Tile) {
+        self.client_view_update
+            .tiles
+            .insert(position, ViewEvent::Changed(tile.clone()));
         self.tiles.insert(position, tile);
     }
 
     pub fn try_set_tile(&mut self, position: Position, tile: Tile) {
-        self.tiles.entry(position).or_insert(tile);
+        if !self.tiles.contains_key(&position) {
+            self.client_view_update
+                .tiles
+                .insert(position, ViewEvent::Changed(tile.clone()));
+            self.tiles.insert(position, tile);
+        }
     }
 
     fn tile_from_noise_value(&self, mineral_noise: f32, terrain_noise: f32) -> Tile {

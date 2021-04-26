@@ -18,7 +18,7 @@ impl TreeRoots {
 #[derive(Debug, Clone)]
 pub struct Root {
     pub position: Vec2<f32>,
-    pub parent_root: Option<Id>,
+    pub parent_root: Option<(Id, Vec2<f32>)>,
     pub root_type: RootType,
 }
 
@@ -87,7 +87,7 @@ impl Model {
                 }
                 for (&other_id, other) in &self.tree_roots.roots {
                     if other_id != root_id
-                        && Some(other_id) != root.parent_root
+                        && Some(other_id) != root.parent_root.map(|(id, _)| id)
                         && (other.position - root.position).len()
                             <= self.fixed_delta_time * self.rules.root_growth_speed / 2.0
                     {
@@ -113,6 +113,10 @@ impl Model {
                         _ => (),
                     }
                 }
+
+                self.client_view_update
+                    .roots
+                    .insert(root_id, ViewEvent::Changed(root.clone()));
             }
             RootType::Consumer { position } => {
                 let consume_limit = self.rules.mineral_consume_speed * self.fixed_delta_time;
@@ -120,6 +124,10 @@ impl Model {
                 if consumed == 0.0 {
                     root.root_type = RootType::Final;
                 }
+
+                self.client_view_update
+                    .roots
+                    .insert(root_id, ViewEvent::Changed(root.clone()));
             }
             _ => (),
         }
@@ -134,30 +142,37 @@ impl Model {
         if consumed_pos.contains(&position) {
             return 0.0;
         };
-        if let Some(Tile::Mineral { minerals }) = self.tiles.get_mut(&position) {
-            let consume = minerals.min(consume_limit);
-            self.minerals += consume;
-            *minerals -= consume;
-            consume_limit -= consume;
-            consumed_pos.insert(position);
-            let consume_neighbours = if consume_limit > 0.0 {
-                let mut consumed = 0.0;
-                for neighbour in get_neighbours(position) {
-                    let consume = self.consume(consumed_pos, neighbour, consume_limit);
-                    consumed += consume;
-                    consume_limit -= consume;
-                    if consume_limit <= 0.0 {
-                        break;
+        if let Some(tile) = self.tiles.get_mut(&position) {
+            if let Tile::Mineral { minerals } = tile {
+                let consume = minerals.min(consume_limit);
+                self.minerals += consume;
+                *minerals -= consume;
+                consume_limit -= consume;
+                consumed_pos.insert(position);
+
+                self.client_view_update
+                    .tiles
+                    .insert(position, ViewEvent::Changed(tile.clone()));
+
+                let consume_neighbours = if consume_limit > 0.0 {
+                    let mut consumed = 0.0;
+                    for neighbour in get_neighbours(position) {
+                        let consume = self.consume(consumed_pos, neighbour, consume_limit);
+                        consumed += consume;
+                        consume_limit -= consume;
+                        if consume_limit <= 0.0 {
+                            break;
+                        }
                     }
-                }
-                consumed
-            } else {
-                0.0
-            };
-            consume + consume_neighbours
-        } else {
-            0.0
+                    consumed
+                } else {
+                    0.0
+                };
+
+                return consume + consume_neighbours;
+            }
         }
+        0.0
     }
 
     fn grow_root(&mut self, root: &mut Root, velocity: Velocity) {
@@ -167,22 +182,29 @@ impl Model {
             parent_root: root.parent_root,
             root_type: RootType::Node,
         });
+        root.parent_root = Some((id, root.position));
         root.position = next_pos;
-        root.parent_root = Some(id);
     }
 
     pub fn new_root(&mut self, root: Root) -> Id {
         let id = self.id_generator.gen();
+        self.client_view_update
+            .roots
+            .insert(id, ViewEvent::Changed(root.clone()));
         self.tree_roots.roots.insert(id, root);
         id
     }
 
     pub fn spawn_attractor(&mut self, position: Vec2<f32>) {
         if let Some(closest_id) = Self::closest_root_id(&self.tree_roots.roots, position) {
-            self.tree_roots.attractors.push(Attractor {
+            let attractor = Attractor {
                 position,
                 root: closest_id,
-            })
+            };
+            self.client_view_update
+                .attractors
+                .push(ViewEvent::Changed(attractor.clone()));
+            self.tree_roots.attractors.push(attractor);
         }
     }
 
@@ -214,13 +236,13 @@ impl Model {
         });
         self.new_root(Root {
             position: left_pos,
-            parent_root: Some(id),
+            parent_root: Some((id, root.position)),
             root_type: RootType::Head {
                 velocity: left_dir * self.rules.root_growth_speed,
             },
         });
+        root.parent_root = Some((id, root.position));
         root.position = right_pos;
-        root.parent_root = Some(id);
         root.root_type = RootType::Head {
             velocity: right_dir * self.rules.root_growth_speed,
         };

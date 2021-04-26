@@ -28,8 +28,14 @@ impl geng::State for State {
         self.renderer.update(delta_time as f32);
     }
     fn draw(&mut self, framebuffer: &mut ugli::Framebuffer) {
-        self.renderer
-            .draw(framebuffer, &self.model, &mut self.texture);
+        let view = if self.renderer.request_view {
+            self.renderer.request_view = false;
+            println!("Requesting full view");
+            self.model.get_client_view()
+        } else {
+            self.model.get_client_view_update()
+        };
+        self.renderer.draw(framebuffer, &view, &mut self.texture);
     }
     fn handle_event(&mut self, event: geng::Event) {
         self.model.handle_event(&event);

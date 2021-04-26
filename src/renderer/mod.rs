@@ -12,6 +12,7 @@ pub struct Renderer {
     texture_offset: f32,
     texture_buffer: usize,
     texture_size: Vec2<usize>,
+    pub request_view: bool,
 }
 
 pub enum Message {
@@ -33,6 +34,7 @@ impl Renderer {
             texture_offset: 0.0,
             texture_buffer: 4,
             texture_size: vec2(0, 0),
+            request_view: true,
         }
     }
     fn scale(&self) -> f32 {
@@ -59,11 +61,12 @@ impl Renderer {
             ugli::Texture::new_uninitialized(self.geng.ugli(), self.texture_size);
         temp_texture.set_filter(ugli::Filter::Nearest);
         *texture = Some(temp_texture);
+        self.request_view = true;
     }
     pub fn draw(
         &mut self,
         framebuffer: &mut ugli::Framebuffer,
-        model: &model::Model,
+        view: &model::ClientView,
         texture: &mut Option<ugli::Texture>,
     ) {
         ugli::clear(framebuffer, Some(Color::BLACK), None);
@@ -86,10 +89,10 @@ impl Renderer {
                 self.geng.ugli(),
                 ugli::ColorAttachment::Texture(texture.as_mut().unwrap()),
             );
-            self.draw_impl(&mut framebuffer, model);
+            self.draw_impl(&mut framebuffer, view);
         }
         let size = self.texture_size.map(|x| x as f32);
-        let pos0 = self.texture_to_camera(vec2(0.0, 0.0)) - vec2(0.0, size.y);
+        let pos0 = self.texture_to_camera(vec2(0.0, self.texture_offset)) - vec2(0.0, size.y);
         self.geng.draw_2d().textured_quad(
             framebuffer,
             AABB::pos_size(pos0, vec2(size.x, size.y)),
@@ -97,12 +100,12 @@ impl Renderer {
             Color::WHITE,
         );
 
-        let text = format!("Minerals: {}", model.minerals.floor());
+        let text = format!("Minerals: {}", view.minerals.floor());
         self.geng
             .default_font()
             .draw(framebuffer, &text, vec2(20.0, 20.0), 25.0, Color::WHITE);
 
-        let text = format!("Score: {}", self.current_depth.floor());
+        let text = format!("Score: {}", self.target_depth.floor());
         self.geng.default_font().draw_aligned(
             framebuffer,
             &text,
@@ -112,80 +115,71 @@ impl Renderer {
             Color::WHITE,
         );
     }
-    fn draw_impl(&mut self, framebuffer: &mut ugli::Framebuffer, model: &model::Model) {
-        self.target_depth = model
-            .tree_roots
-            .roots
-            .values()
-            .map(|root| root.position.y)
-            .max_by(|a, b| a.partial_cmp(b).unwrap())
-            .unwrap();
+    fn draw_impl(&mut self, framebuffer: &mut ugli::Framebuffer, view: &model::ClientView) {
+        self.target_depth = view.current_depth;
 
-        for (pos, tile) in model
-            .tiles
-            .iter()
-            .filter(|(pos, _)| self.is_on_screen(pos.map(|x| x as f32)))
-        {
-            let color = match tile {
-                Tile::Stone => Color::GRAY,
-                Tile::Dirt => Color::rgb(0.5, 0.5, 0.0),
-                Tile::Mineral { minerals } => Color::rgb(
-                    0.1,
-                    0.1,
-                    (minerals / model.rules.mineral_richness).clamp(0.0, 1.0),
-                ),
-            };
-            let local_pos = self.world_to_texture(pos.map(|x| x as f32));
-            self.geng.draw_2d().quad(
-                framebuffer,
-                AABB::from_corners(local_pos, local_pos + vec2(1.0, 1.0) * self.scale()),
-                color,
-            );
-        }
-
-        for root in model
-            .tree_roots
-            .roots
-            .values()
-            .filter(|root| self.is_on_screen(root.position))
-        {
-            let color = Color::rgb(0.2, 0.2, 0.0);
-            let local_pos = self.world_to_texture(root.position);
-            if let Some(parent) = root.parent_root {
-                let parent_pos = model.tree_roots.roots[&parent].position;
-                let parent_pos = self.world_to_texture(parent_pos);
-                let vertices = [local_pos, parent_pos];
-                self.geng.draw_2d().draw(
-                    framebuffer,
-                    &vertices,
-                    color,
-                    ugli::DrawMode::Lines {
-                        line_width: self.root_width * self.scale,
-                    },
-                )
-            } else {
-                self.geng.draw_2d().quad(
-                    framebuffer,
-                    AABB::from_corners(
-                        local_pos,
-                        local_pos + vec2(1.0, 1.0) * self.root_width * self.scale,
-                    ),
-                    color,
-                );
+        for (pos, tile) in &view.tiles {
+            match tile {
+                model::ViewEvent::Changed(tile) => {
+                    let color = match tile {
+                        Tile::Stone => Color::GRAY,
+                        Tile::Dirt => Color::rgb(0.5, 0.5, 0.0),
+                        Tile::Mineral { minerals } => Color::rgb(
+                            0.1,
+                            0.1,
+                            (minerals / view.rules.mineral_richness).clamp(0.0, 1.0),
+                        ),
+                    };
+                    let local_pos = self.world_to_texture(pos.map(|x| x as f32));
+                    self.geng.draw_2d().quad(
+                        framebuffer,
+                        AABB::pos_size(local_pos, vec2(1.0, 1.0) * self.scale()),
+                        color,
+                    );
+                }
             }
         }
 
-        for attractor in model
-            .tree_roots
-            .attractors
-            .iter()
-            .filter(|attractor| self.is_on_screen(attractor.position))
-        {
-            let color = Color::BLUE;
-            let local_pos = self.world_to_texture(attractor.position);
-            self.geng
-                .draw_2d()
-                .circle(framebuffer, local_pos, self.attractor_size, color);
+        for root in view.roots.values() {
+            match root {
+                model::ViewEvent::Changed(root) => {
+                    let color = Color::rgb(0.2, 0.2, 0.0);
+                    let local_pos = self.world_to_texture(root.position);
+                    if let Some((_, parent_pos)) = root.parent_root {
+                        let parent_pos = self.world_to_texture(parent_pos);
+                        let vertices = [local_pos, parent_pos];
+                        self.geng.draw_2d().draw(
+                            framebuffer,
+                            &vertices,
+                            color,
+                            ugli::DrawMode::Lines {
+                                line_width: self.root_width * self.scale,
+                            },
+                        )
+                    } else {
+                        self.geng.draw_2d().quad(
+                            framebuffer,
+                            AABB::pos_size(
+                                local_pos,
+                                vec2(1.0, 1.0) * self.root_width * self.scale,
+                            ),
+                            color,
+                        );
+                    }
+                }
+            }
+        }
+
+        for attractor in &view.attractors {
+            match attractor {
+                model::ViewEvent::Changed(attractor) => {
+                    let color = Color::BLUE;
+                    let local_pos = self.world_to_texture(attractor.position);
+                    self.geng
+                        .draw_2d()
+                        .circle(framebuffer, local_pos, self.attractor_size, color);
+                }
+            }
         }
     }
     pub fn handle_event(&mut self, event: &geng::Event) -> Option<Message> {
@@ -220,13 +214,5 @@ impl Renderer {
             + self.offset();
         let pos = vec2(pos.x, -pos.y);
         pos
-    }
-    fn is_on_screen(&self, pos: Vec2<f32>) -> bool {
-        // let local_pos = self.texture_to_camera(self.world_to_texture(pos));
-        // local_pos.y >= 0.0
-        //     && local_pos.y <= self.screen_center.y * 2.0
-        //     && local_pos.x >= 0.0
-        //     && local_pos.x <= self.screen_center.x * 2.0
-        true
     }
 }
