@@ -71,6 +71,7 @@ impl Model {
             current_depth: 0.0,
             generation_depth: 0,
         };
+        model.client_view_update.rules = self.rules.clone();
         model.reset();
         model
     }
@@ -108,7 +109,6 @@ impl Model {
                 .max_by(|a, b| a.partial_cmp(b).unwrap())
                 .unwrap();
 
-            self.client_view_update.rules = self.rules.clone();
             self.client_view_update.current_depth = self.current_depth;
             self.client_view_update.minerals = self.minerals;
 
