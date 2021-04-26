@@ -60,7 +60,7 @@ impl Model {
             Tile::Mineral {
                 minerals: ((1.0 - mineral_noise / self.rules.mineral_frequency)
                     * self.rules.mineral_richness)
-                    .clamp(1.0, self.rules.mineral_richness),
+                    .clamp(0.5, self.rules.mineral_richness),
             }
         } else if terrain_noise <= self.rules.stone_frequency {
             Tile::Stone
