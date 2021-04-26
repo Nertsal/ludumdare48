@@ -26,8 +26,8 @@ impl Default for Rules {
             mineral_consume_speed: 1.0,
             split_cost: 1.0,
             attractor_cost: 5.0,
-            generation_depth_max: 100,
-            generation_depth_min: 50,
+            generation_depth_max: 200,
+            generation_depth_min: 100,
             deletion_depth: 50,
         }
     }
